@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Database (runtime data — regenerated on startup)
+*.db
+*.sqlite
+*.sqlite3
+data/
+*/data/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+certs/
+
+# Docker runtime
+.docker/
+
+# Build outputs
+dist/
+build/
+*.min.js
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V8
+.Trashes
+ehthumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Coverage
+coverage/
+.nyc_output/
+setup.sh
+setup-git-history.sh

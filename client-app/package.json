@@ -1,0 +1,17 @@
+{
+  "name": "oauth-client-app",
+  "version": "1.0.0",
+  "description": "OAuth 2.0 Client Application — demonstrates vulnerable and secure token storage",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.5.0",
+    "cookie-parser": "^1.4.6",
+    "uuid": "^9.0.0",
+    "dotenv": "^16.0.0"
+  }
+}

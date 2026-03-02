@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAuth Security Lab 🔐</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fdf6e3;--paper:#fffef7;--paper2:#fff9e8;
+  --ink:#2d2416;--ink2:#5c4a2a;--ink3:#9c8860;
+  --border:#d4b896;--border2:#c4a070;
+  --red:#e05a3a;--green:#3a9e6a;--blue:#3a6eb5;--orange:#d4852a;--yellow:#e8c840;
+  --shadow:4px 4px 0px #c4a070;--shadow-sm:2px 2px 0px #c4a070;
+  --mono:'Courier Prime','Courier New',monospace;
+  --sans:'Nunito',system-ui,sans-serif;
+  --nav-h:58px;
+}
+[data-theme="dark"]{
+  --bg:#1a1612;--paper:#221e18;--paper2:#2a2520;
+  --ink:#f0e8d5;--ink2:#c8b89a;--ink3:#8a7860;
+  --border:#4a3c28;--border2:#5c4a32;
+  --shadow:4px 4px 0px #0a0806;--shadow-sm:2px 2px 0px #0a0806;
+}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--ink)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(180,140,80,0.06) 28px)}
+
+/* ── NAV ── */
+#nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:100;
+  background:var(--paper);border-bottom:2px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:12px;box-shadow:0 2px 0 var(--border)}
+.nav-brand{display:flex;align-items:center;gap:8px;font-weight:900;font-size:15px;
+  color:var(--ink);text-decoration:none;
+  background:var(--yellow);border:2px solid var(--ink);padding:4px 12px;border-radius:4px;
+  box-shadow:var(--shadow-sm);transform:rotate(-1deg);transition:transform .15s;flex-shrink:0}
+.nav-brand:hover{transform:rotate(0deg) scale(1.02)}
+.nav-spacer{flex:1}
+.theme-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;
+  font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;
+  border:2px solid var(--border);background:var(--paper2);box-shadow:var(--shadow-sm);
+  font-family:var(--sans);transition:all .15s}
+.theme-btn:hover{border-color:var(--border2);transform:translateY(-1px)}
+
+/* ── MAIN ── */
+#wrap{min-height:100vh;padding:calc(var(--nav-h) + 32px) 20px 48px;
+  display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+.hero{max-width:700px;width:100%;text-align:center}
+.hero-icon{font-size:64px;margin-bottom:18px;display:block;filter:drop-shadow(3px 3px 0 var(--border2))}
+.eyebrow{font-size:10.5px;font-weight:800;font-family:var(--mono);color:var(--orange);
+  text-transform:uppercase;letter-spacing:.18em;margin-bottom:10px}
+h1{font-size:32px;font-weight:900;color:var(--ink);margin-bottom:12px;line-height:1.2}
+.sub{font-size:14px;color:var(--ink2);line-height:1.8;max-width:520px;margin:0 auto 36px}
+
+/* ── Action cards ── */
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+@media(max-width:520px){.actions{grid-template-columns:1fr}}
+.action-card{display:flex;flex-direction:column;align-items:center;
+  background:var(--paper);border:2px solid var(--border);border-radius:10px;
+  padding:28px 20px 22px;text-decoration:none;color:var(--ink);
+  box-shadow:var(--shadow);transition:all .18s;position:relative;overflow:hidden}
+.action-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.action-card.lab::before{background:var(--blue)}
+.action-card.client::before{background:var(--green)}
+.action-card:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--border2);border-color:var(--border2)}
+.ac-icon{font-size:40px;margin-bottom:14px}
+.ac-title{font-size:18px;font-weight:900;color:var(--ink);margin-bottom:6px}
+.ac-desc{font-size:12.5px;color:var(--ink3);line-height:1.65;text-align:center;margin-bottom:16px}
+.ac-btn{padding:9px 22px;border-radius:5px;font-size:13px;font-weight:800;
+  border:2px solid;box-shadow:var(--shadow-sm);font-family:var(--sans);
+  transition:all .15s;cursor:pointer}
+.ac-btn.lab{background:rgba(58,110,181,.1);color:var(--blue);border-color:var(--blue)}
+.ac-btn.client{background:rgba(58,158,106,.1);color:var(--green);border-color:var(--green)}
+.action-card:hover .ac-btn{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--border2)}
+
+/* ── Services strip ── */
+.services{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.svc-chip{display:flex;align-items:center;gap:5px;padding:5px 11px;
+  background:var(--paper);border:1.5px solid var(--border);border-radius:20px;
+  font-size:11px;font-weight:700;color:var(--ink2);font-family:var(--mono);
+  box-shadow:var(--shadow-sm)}
+.ldot{width:6px;height:6px;border-radius:50%;flex-shrink:0;animation:blink 2s infinite}
+.ldot.g{background:var(--green)}.ldot.r{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Footer ── */
+.footer{font-size:11px;color:var(--ink3);border-top:2px dashed var(--border);
+  padding-top:14px;margin-top:4px}
+.footer a{color:var(--blue);font-weight:700;text-decoration:none}
+
+/* ── Attack badges ── */
+.atk-badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.ab{font-size:10px;font-weight:800;padding:3px 9px;border-radius:10px;border:1.5px solid;
+  font-family:var(--mono);cursor:pointer;transition:all .12s;text-decoration:none;color:inherit}
+.ab.hi{background:rgba(212,133,42,.1);color:var(--orange);border-color:var(--orange)}
+.ab.cr{background:rgba(224,90,58,.1);color:var(--red);border-color:var(--red)}
+.ab:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <a class="nav-brand" href="/">🔐 OAuth Lab</a>
+  <span class="nav-spacer"></span>
+  <button class="theme-btn" onclick="toggleTheme()">🌙 Dark</button>
+</nav>
+
+<div id="wrap">
+  <div class="hero">
+    <span class="hero-icon">🔐</span>
+    <div class="eyebrow">Security Research Lab</div>
+    <h1>OAuth 2.0 Attack Simulation Lab</h1>
+    <p class="sub">Seven real-world OAuth vulnerabilities — each with a live exploit, step-by-step walkthrough, and working mitigation. Toggle VULNERABLE / SECURE without restarting Docker.</p>
+
+    <div class="actions">
+      <a class="action-card lab" href="/lab">
+        <div class="ac-icon">📚</div>
+        <div class="ac-title">Attack Lab</div>
+        <div class="ac-desc">Interactive docs with step-by-step attack walkthroughs, live curl commands, and ▶ Run buttons. All 7 attacks.</div>
+        <span class="ac-btn lab">Open Attack Lab →</span>
+      </a>
+      <a class="action-card client" href="/login">
+        <div class="ac-icon">👤</div>
+        <div class="ac-title">Client App</div>
+        <div class="ac-desc">Log in as alice / password123 to start a real OAuth flow. Tokens will be auto-filled in lab commands.</div>
+        <span class="ac-btn client">Log In →</span>
+      </a>
+    </div>
+
+    <div class="services">
+      <div class="svc-chip"><span class="ldot g"></span>Auth Server · :3001</div>
+      <div class="svc-chip"><span class="ldot g"></span>Client App · :3002</div>
+      <div class="svc-chip"><span class="ldot g"></span>Resource API · :3003</div>
+      <div class="svc-chip"><span class="ldot r"></span>Attacker C2 · :3004</div>
+      <div class="svc-chip"><span class="ldot g"></span>Monitoring · :3005</div>
+    </div>
+
+    <div class="atk-badges">
+      <a class="ab hi" href="/lab#a1">1 · Redirect URI</a>
+      <a class="ab hi" href="/lab#a2">2 · PKCE Bypass</a>
+      <a class="ab hi" href="/lab#a3">3 · XSS Leakage</a>
+      <a class="ab hi" href="/lab#a4">4 · Consent Abuse</a>
+      <a class="ab cr" href="/lab#a5">5 · Refresh Abuse</a>
+      <a class="ab hi" href="/lab#a6">6 · Scope Escalation</a>
+      <a class="ab cr" href="/lab#a7">7 · JWT alg=none</a>
+    </div>
+
+    <div class="footer">Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a> · Educational use only · Not for production</div>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const light = html.getAttribute('data-theme') === 'light';
+  html.setAttribute('data-theme', light ? 'dark' : 'light');
+  document.querySelector('.theme-btn').textContent = light ? '☀️ Light' : '🌙 Dark';
+}
+// Hash-based deep link into lab
+if (window.location.hash && window.location.hash.startsWith('#a')) {
+  sessionStorage.setItem('labPage', window.location.hash.slice(1));
+  window.location.href = '/lab';
+}
+</script>
+</body>
+</html>

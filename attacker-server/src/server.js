@@ -91,7 +91,7 @@ body{font-family:'Nunito',sans-serif;background:#fdf6e3;color:#2d2416;min-height
 body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(180,140,80,0.06) 28px)}
 nav{background:#fffef7;border-bottom:2px solid #d4b896;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 0 #d4b896}
 nav a{text-decoration:none;font-weight:800}
-.card{background:#fffef7;border:2px solid #d4b896;border-radius:10px;padding:24px;max-width:720px;margin:24px auto;box-shadow:4px 4px 0 #c4a070;position:relative;z-index:1}
+.card{background:#fffef7;border:2px solid #d4b896;border-radius:10px;padding:24px;max-width:720px;margin:40px auto 24px;box-shadow:4px 4px 0 #c4a070;position:relative;z-index:1}
 h2{font-size:18px;font-weight:900;margin-bottom:12px;color:#2d2416}
 h3{font-size:13px;font-weight:800;margin:16px 0 8px;color:#2d2416}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:800;border:2px solid;font-family:'Courier Prime',monospace;margin-bottom:14px}
@@ -335,7 +335,7 @@ body{font-family:'Nunito',sans-serif;background:#fdf6e3;color:#2d2416;min-height
 body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(180,140,80,0.06) 28px)}
 nav{background:#fffef7;border-bottom:2px solid #d4b896;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 0 #d4b896}
 nav a{text-decoration:none;font-weight:800}
-.card{background:#fffef7;border:2px solid #d4b896;border-radius:10px;padding:24px;max-width:760px;margin:24px auto;box-shadow:4px 4px 0 #c4a070;position:relative;z-index:1}
+.card{background:#fffef7;border:2px solid #d4b896;border-radius:10px;padding:24px;max-width:760px;margin:40px auto 24px;box-shadow:4px 4px 0 #c4a070;position:relative;z-index:1}
 h2{font-size:18px;font-weight:900;margin-bottom:12px}
 h3{font-size:13px;font-weight:800;margin:16px 0 8px;color:#2d2416}
 .badge{display:inline-flex;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:800;border:2px solid #e05a3a;background:rgba(224,90,58,.1);color:#e05a3a;font-family:'Courier Prime',monospace;margin-bottom:14px}

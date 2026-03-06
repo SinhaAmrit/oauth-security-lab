@@ -2,14 +2,6 @@
 # OAuth Security Lab — Render Blueprint
 # Deploy all 5 services with: https://dashboard.render.com/blueprints
 # ============================================================
-#
-# AFTER first deploy, copy the exact service URLs from Render dashboard
-# and update ALLOWED_ORIGINS on oauth-lab-resource manually.
-# Everything else is auto-wired via fromService references.
-#
-# Free tier note: services sleep after 15 min inactivity.
-# First request after sleep = ~30s cold start. This is normal.
-# ============================================================
 
 services:
 
@@ -25,31 +17,22 @@ services:
       - key: PORT
         value: 3001
       - key: JWT_SECRET
-        value: render-lab-jwt-secret-change-me-2024  # ← change this, must match oauth-lab-resource
+        value: render-lab-jwt-secret-change-me-2024
       - key: VULNERABLE_MODE
         value: "true"
       - key: DB_PATH
         value: /tmp/oauth.db
+
+      # internal networking
       - key: AUTH_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
       - key: CLIENT_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-client
-          property: url
+        value: http://oauth-lab-client:3002
       - key: ATTACKER_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-attacker
-          property: url
+        value: http://oauth-lab-attacker:3004
       - key: RESOURCE_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-resource
-          property: url
+        value: http://oauth-lab-resource:3003
+
 
   # ── 2. Client Application ────────────────────────────────
   - type: web
@@ -66,41 +49,23 @@ services:
         value: legitimate-client
       - key: CLIENT_SECRET
         value: legitimate-secret-abc123
+
+      # internal networking
       - key: CLIENT_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-client
-          property: url
+        value: http://oauth-lab-client:3002
       - key: AUTH_SERVER
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
       - key: AUTH_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
       - key: RESOURCE_SERVER
-        fromService:
-          type: web
-          name: oauth-lab-resource
-          property: url
+        value: http://oauth-lab-resource:3003
       - key: RESOURCE_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-resource
-          property: url
+        value: http://oauth-lab-resource:3003
       - key: ATTACKER_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-attacker
-          property: url
+        value: http://oauth-lab-attacker:3004
       - key: MONITOR_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-monitor
-          property: url
+        value: http://oauth-lab-monitor:3005
+
 
   # ── 3. Resource Server ───────────────────────────────────
   - type: web
@@ -114,29 +79,22 @@ services:
       - key: PORT
         value: 3003
       - key: JWT_SECRET
-        value: render-lab-jwt-secret-change-me-2024  # ← must match oauth-lab-auth
+        value: render-lab-jwt-secret-change-me-2024
       - key: VULNERABLE_MODE
         value: "true"
+
+      # internal networking
       - key: AUTH_SERVER
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
       - key: AUTH_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
       - key: RESOURCE_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-resource
-          property: url
-      # ⚠️  Update this after first deploy with actual Render URLs:
-      # https://dashboard.render.com → oauth-lab-resource → Environment
-      # Format: https://oauth-lab-client.onrender.com,https://oauth-lab-attacker.onrender.com
+        value: http://oauth-lab-resource:3003
+
+      # update AFTER deployment
       - key: ALLOWED_ORIGINS
         value: PASTE_CLIENT_URL_HERE,PASTE_ATTACKER_URL_HERE
+
 
   # ── 4. Attacker Server ───────────────────────────────────
   - type: web
@@ -149,26 +107,17 @@ services:
         value: production
       - key: PORT
         value: 3004
+
+      # internal networking
       - key: CLIENT_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-client
-          property: url
+        value: http://oauth-lab-client:3002
       - key: AUTH_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
       - key: RESOURCE_SERVER_PUBLIC
-        fromService:
-          type: web
-          name: oauth-lab-resource
-          property: url
+        value: http://oauth-lab-resource:3003
       - key: ATTACKER_BASE_URL
-        fromService:
-          type: web
-          name: oauth-lab-attacker
-          property: url
+        value: http://oauth-lab-attacker:3004
+
 
   # ── 5. Monitoring Dashboard ──────────────────────────────
   - type: web
@@ -181,8 +130,8 @@ services:
         value: production
       - key: PORT
         value: 3005
+
+      # internal networking
       - key: AUTH_SERVER
-        fromService:
-          type: web
-          name: oauth-lab-auth
-          property: url
+        value: http://oauth-lab-auth:3001
+

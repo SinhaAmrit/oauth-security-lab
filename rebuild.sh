@@ -12,7 +12,7 @@ echo "🔨  Building fresh images (no cache)..."
 docker compose build --no-cache
 
 echo "🚀  Starting lab..."
-docker compose up -d
+docker compose up
 
 echo ""
 echo "✅  Lab is up:"

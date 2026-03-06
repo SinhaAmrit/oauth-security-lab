@@ -34,6 +34,7 @@ const { auditLog } = require('./middleware/audit');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const PUBLIC_URL = process.env.AUTH_SERVER_PUBLIC || `http://localhost:${PORT}`;
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json());
@@ -59,10 +60,10 @@ app.use('/admin', adminRoutes);
 // Well-known OIDC discovery endpoint
 app.get('/.well-known/oauth-authorization-server', (req, res) => {
   res.json({
-    issuer: `http://localhost:${PORT}`,
-    authorization_endpoint: `http://localhost:${PORT}/oauth/authorize`,
-    token_endpoint: `http://localhost:${PORT}/oauth/token`,
-    jwks_uri: `http://localhost:${PORT}/oauth/jwks`,
+    issuer: PUBLIC_URL,
+    authorization_endpoint: `${PUBLIC_URL}/oauth/authorize`,
+    token_endpoint: `${PUBLIC_URL}/oauth/token`,
+    jwks_uri: `${PUBLIC_URL}/oauth/jwks`,
     scopes_supported: ['read', 'write', 'admin', 'profile', 'email'],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],

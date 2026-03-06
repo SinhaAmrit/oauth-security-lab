@@ -464,6 +464,7 @@ tbody tr:hover td{background:var(--paper2)}
   <div class="sb-a" data-p="a5"><span class="sb-ico">🎯</span>5 · Refresh Abuse<span class="sb-pill p-cr">CRIT</span></div>
   <div class="sb-a" data-p="a6"><span class="sb-ico">🎯</span>6 · Scope Escalation<span class="sb-pill p-hi">HIGH</span></div>
   <div class="sb-a" data-p="a7"><span class="sb-ico">🎯</span>7 · JWT alg=none<span class="sb-pill p-cr">CRIT</span></div>
+  <div class="sb-a" data-p="a8"><span class="sb-ico">🎯</span>8 · CSRF on OAuth<span class="sb-pill p-hi">HIGH</span></div>
   <div class="sb-div"></div>
   <div class="sb-lbl">Documentation</div>
   <div class="sb-a" data-p="arch"><span class="sb-ico">🏗</span>Architecture</div>
@@ -484,7 +485,7 @@ tbody tr:hover td{background:var(--paper2)}
 <div class="pg on" id="pg-home">
   <div class="eyebrow">Security Research Lab</div>
   <h1>OAuth 2.0 Attack Simulation Lab 🔐</h1>
-  <p class="lead">Seven real-world OAuth vulnerabilities — each with a live exploit, step-by-step walkthrough, and working mitigation. Toggle <strong>VULNERABLE / SECURE</strong> without restarting Docker.</p>
+  <p class="lead">Eight real-world OAuth vulnerabilities — each with a live exploit, step-by-step walkthrough, and working mitigation. Toggle <strong>VULNERABLE / SECURE</strong> without restarting Docker.</p>
 
   <div class="div-row"><span class="div-lbl">Getting Started</span><span class="div-line"></span></div>
   <div class="gs-box">
@@ -531,7 +532,7 @@ tbody tr:hover td{background:var(--paper2)}
     </a>
   </div>
 
-  <div class="div-row"><span class="div-lbl">7 Attack Scenarios</span><span class="div-line"></span></div>
+  <div class="div-row"><span class="div-lbl">8 Attack Scenarios</span><span class="div-line"></span></div>
   <div class="atk-list">
     <div class="atk-row" data-p="a1">
       <div class="arow-n">1</div>
@@ -567,6 +568,11 @@ tbody tr:hover td{background:var(--paper2)}
       <div class="arow-n">7</div>
       <div class="arow-info"><div class="arow-title">JWT Algorithm Confusion (alg=none)</div><div class="arow-sub">CVE-2015-9235 — jwt.decode() skips signature check, forged tokens with admin claims accepted</div></div>
       <div class="arow-r"><span class="sev sev-cr">CRIT</span><span class="fbadge">resource/server.js</span></div>
+    </div>
+    <div class="atk-row" data-p="a8">
+      <div class="arow-n">8</div>
+      <div class="arow-info"><div class="arow-title">CSRF on OAuth Flow (Missing State Validation)</div><div class="arow-sub">RFC 6749 §10.12 — missing state param lets attacker bind their session to victim's token</div></div>
+      <div class="arow-r"><span class="sev sev-hi">HIGH</span><span class="fbadge">client-app/server.js</span></div>
     </div>
   </div>
 
@@ -1055,6 +1061,76 @@ decoded = jwt.decode(token);
   <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
 </div>
 
+<!-- ══ ATTACK 8: CSRF ══ -->
+<div class="pg" id="pg-a8">
+  <div class="atk-hero">
+    <div class="hero-row">
+      <div class="hero-n">08</div>
+      <div>
+        <div class="hero-title">CSRF on OAuth Flow (Missing State Validation)</div>
+        <div class="hero-sub">RFC 6749 §10.12 — The <code>state</code> parameter is OAuth's CSRF token. A callback endpoint that skips state validation lets an attacker trick a victim's browser into completing an OAuth flow with the attacker's authorization code, binding the victim's session to the attacker's account.</div>
+      </div>
+    </div>
+    <div class="hero-meta"><span class="sev sev-hi">HIGH</span><span class="fbadge">client-app/src/server.js → /attack-callback</span></div>
+  </div>
+
+  <h2>How This Attack Works</h2>
+  <p>When a user clicks Login, the client generates a random <code>state</code> value and stores it server-side. After the auth server redirects back with a code, the client verifies the returned <code>state</code> matches what it stored. This prevents CSRF.</p>
+  <p><strong>The bug:</strong> The <code>/attack-callback</code> endpoint was added for Attack 6 and intentionally skips state validation. An attacker can craft a URL that initiates an OAuth flow using <em>their own</em> authorization code, then trick a logged-in victim into visiting it — binding the victim's session to the attacker's account.</p>
+
+  <h2>Step-by-Step Execution</h2>
+  <ol class="steps">
+    <li><span class="sn">1</span><div class="sc">
+      <p><strong>Attacker logs in</strong> and gets an authorization code from the auth server but <em>does not exchange it</em>. Copy the code from the URL.</p>
+      <div class="cb"><div class="cb-head"><span>Step 1 — Attacker gets a fresh auth code (opens in new tab)</span><div class="cb-acts"><button class="btn-run" id="a8-initbtn">▶ Get Auth Code</button></div></div><pre class="cc" id="a8-code">Click ▶ Get Auth Code above — then copy the code= value from the redirect URL</pre></div>
+    </div></li>
+
+    <li><span class="sn">2</span><div class="sc">
+      <p><strong>Attacker crafts a CSRF URL</strong> — a link to the victim's client app callback endpoint with the attacker's code. When the victim visits this URL (e.g. via a phishing link), their session gets the attacker's token.</p>
+      <div class="cb"><div class="cb-head"><span>Step 2 — CSRF payload URL (paste attacker's code above first)</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button></div></div><pre class="cc" id="a8-csrf-url">Paste code from Step 1 into the box above…</pre></div>
+      <div style="margin-top:8px">
+        <label style="font-size:12px;font-weight:700;color:var(--ink2)">Attacker's captured code:</label>
+        <input id="a8-code-input" type="text" placeholder="e.g. eac64e10-8290-45ce-b5b6-259fd0c60fea"
+          style="width:100%;margin-top:4px;padding:6px 10px;border:1.5px solid var(--border);border-radius:5px;font-family:var(--mono);font-size:12px;background:var(--paper2);color:var(--ink)"
+          oninput="updateCsrfUrl()">
+      </div>
+    </div></li>
+
+    <li><span class="sn">3</span><div class="sc">
+      <p><strong>Victim visits the link</strong> — their browser hits <code>/attack-callback?code=ATTACKER_CODE</code>. Since the endpoint skips state validation, it exchanges the code and stores the attacker's access token in the victim's session.</p>
+      <div class="example-box"><span class="ex-label">✅ VULNERABLE result</span>Victim's browser stores attacker's token — victim is now logged in as attacker's account. Any actions the victim takes (API calls, data reads) use the attacker's identity.
+<span class="ex-label" style="margin-top:6px">❌ SECURE result</span>{&quot;error&quot;: &quot;Invalid state parameter — possible CSRF attack&quot;} — state check blocks the flow</div>
+    </div></li>
+
+    <li><span class="sn">4</span><div class="sc">
+      <p>Confirm the <code>/callback</code> (legitimate flow) validates state — try visiting with a tampered state param:</p>
+      <div class="cb"><div class="cb-head"><span>Test state validation on legitimate callback</span><div class="cb-acts"><button class="btn-copy" onclick="cpb(this)">Copy</button></div></div><pre class="cc" id="a8-state-test">loading…</pre></div>
+    </div></li>
+  </ol>
+
+  <h2>Vulnerable vs Secure Code</h2>
+  <div class="diff">
+    <div class="dh v">🔴 VULNERABLE — /attack-callback (no state check)</div>
+    <div class="dc v">app.get('/attack-callback', async (req, res) =&gt; {
+  const { code } = req.query;
+  // ❌ No state validation — CSRF possible!
+  const tokens = await exchangeCode(code);
+  res.send(renderTokenPage(tokens));
+});</div>
+    <div class="dh s">🟢 SECURE — /callback (validates state)</div>
+    <div class="dc s">app.get('/callback', async (req, res) =&gt; {
+  const { code, state } = req.query;
+  if (!stateStore.has(state)) {         // ← validates state
+    return res.status(400).send(renderError('Invalid state — CSRF blocked'));
+  }
+  stateStore.delete(state);             // ← one-time use
+  const tokens = await exchangeCode(code);
+  res.send(renderTokenPage(tokens));
+});</div>
+  </div>
+  <div class="pgfoot"><span>Built by <a href="https://linkedin.com/in/SinhaAmrit" target="_blank">SinhaAmrit</a></span><span>Educational use only</span></div>
+</div>
+
 <!-- ══ ARCHITECTURE ══ -->
 <div class="pg" id="pg-arch">
   <div class="eyebrow">Reference</div>
@@ -1296,6 +1372,11 @@ async function doToggle() {
 // ── Inject all dynamic content ─────────────────────────────────────────────────
 function st(id, t) { const e = document.getElementById(id); if (e) { e.textContent = t; delete e.dataset.original; } }
 
+function updateCsrfUrl() {
+  const code = document.getElementById('a8-code-input')?.value.trim() || 'PASTE_ATTACKER_CODE_HERE';
+  st('a8-csrf-url', `${U.client}/attack-callback?code=${code}`);
+}
+
 // ── Editable placeholder system ──────────────────────────────────────────────
 function setPlaceholder(inputEl, preId, placeholder) {
   const pre = document.getElementById(preId);
@@ -1434,6 +1515,14 @@ function inject() {
     `# This button forges a JWT with scope="read write admin" and roles=["admin"]\n# and sends it to ${R}/api/admin/users automatically.\n# VULNERABLE: 200 OK — full user list returned\n# SECURE: 401 — jwt.verify() with algorithms:['HS256'] rejects`);
   st('a7-script',
     `const b = s => btoa(unescape(encodeURIComponent(s))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');\nconst h = b(JSON.stringify({ alg: "none", typ: "JWT" }));\nconst pl = b(JSON.stringify({\n  sub: "alice", username: "alice",\n  scope: "read write admin",\n  roles: ["user", "admin"],\n  iss: "${A}", aud: "${R}",\n  exp: Math.floor(Date.now()/1000) + 3600,\n  iat: Math.floor(Date.now()/1000)\n}));\nconst forgedToken = h + "." + pl + ".";  // empty signature — dot at end is intentional\nconsole.log("Forged token:", forgedToken);\n// Use as: Authorization: Bearer <forgedToken>`);
+
+  // ── Attack 8 (CSRF)
+  const a8authUrl = `${A}/oauth/authorize?response_type=code&client_id=legitimate-client&redirect_uri=${encodeURIComponent(C+'/attack-callback')}&scope=read+profile&state=csrf-demo-skip-state`;
+  st('a8-code', 'Click ▶ Get Auth Code above — after redirect, copy the code= value from the URL (before &state=)');
+  st('a8-csrf-url', `${C}/attack-callback?code=PASTE_ATTACKER_CODE_HERE`);
+  st('a8-state-test', `# Try visiting with a tampered/missing state param:\ncurl -v "${C}/callback?code=fakecode&state=WRONG_STATE_VALUE"\n# SECURE result: 400 — "Invalid state parameter — possible CSRF attack"\n# This confirms the legitimate /callback validates state correctly`);
+  const a8initbtn = document.getElementById('a8-initbtn');
+  if (a8initbtn) a8initbtn.onclick = () => window.open(a8authUrl, '_blank');
 
   // Quick ref
   st('qr-exchange',

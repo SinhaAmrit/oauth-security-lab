@@ -128,6 +128,7 @@ app.post('/api/toggle-mode', async (req, res) => {
 const PORTAL = path.join(__dirname, '../public/docs/index.html');
 app.get('/lab', (req, res) => res.sendFile(PORTAL));
 app.get('/docs', (req, res) => res.redirect('/lab'));
+app.get('/', (req, res) => res.redirect('/lab'));
 
 
 // ── GET /login — Initiate OAuth flow ─────────────────────────────────────────
@@ -770,7 +771,8 @@ document.getElementById('tokenDisplay').textContent = 'access_token = ' + '${acc
 <title>✅ OAuth Callback</title>
 ${SHARED_NAV_CSS}
 <style>
-.card{background:var(--paper);border:2px solid var(--border);border-radius:10px;padding:24px;max-width:700px;margin:24px auto;box-shadow:var(--shadow)}
+.page-wrap{padding:calc(var(--nav-h) + 28px) 20px 48px;position:relative;z-index:1}
+.card{background:var(--paper);border:2px solid var(--border);border-radius:10px;padding:24px;max-width:700px;margin:0 auto;box-shadow:var(--shadow)}
 h2{font-size:18px;font-weight:900;margin-bottom:12px;color:var(--ink)}
 .msg{background:rgba(212,133,42,.08);border:2px solid var(--orange);border-radius:6px;padding:10px 13px;margin-bottom:14px;font-weight:700;font-size:13px;color:var(--orange)}
 .btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
@@ -782,6 +784,7 @@ h2{font-size:18px;font-weight:900;margin-bottom:12px;color:var(--ink)}
 </head>
 <body>
 ${sharedNav('/login')}
+<div class="page-wrap">
 <div class="card">
 <h2>✅ Login Successful!</h2>
 ${extraHtml}
@@ -789,6 +792,7 @@ ${storageWarning}
 <div class="btn-row">
   <a href="/dashboard" class="btn btn-blue">📊 Go to Dashboard</a>
   <a href="/xss-demo" class="btn btn-green">⚔️ Try XSS Theft Demo</a>
+</div>
 </div>
 </div>
 ${scriptBlock}

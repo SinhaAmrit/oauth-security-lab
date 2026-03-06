@@ -1,0 +1,188 @@
+# ============================================================
+# OAuth Security Lab — Render Blueprint
+# Deploy all 5 services with: https://dashboard.render.com/blueprints
+# ============================================================
+#
+# AFTER first deploy, copy the exact service URLs from Render dashboard
+# and update ALLOWED_ORIGINS on oauth-lab-resource manually.
+# Everything else is auto-wired via fromService references.
+#
+# Free tier note: services sleep after 15 min inactivity.
+# First request after sleep = ~30s cold start. This is normal.
+# ============================================================
+
+services:
+
+  # ── 1. Authorization Server ───────────────────────────────
+  - type: web
+    name: oauth-lab-auth
+    runtime: docker
+    dockerfilePath: ./auth-server/Dockerfile
+    dockerContext: ./auth-server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: JWT_SECRET
+        value: render-lab-jwt-secret-change-me-2024  # ← change this, must match oauth-lab-resource
+      - key: VULNERABLE_MODE
+        value: "true"
+      - key: DB_PATH
+        value: /tmp/oauth.db
+      - key: AUTH_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url
+      - key: CLIENT_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-client
+          property: url
+      - key: ATTACKER_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-attacker
+          property: url
+      - key: RESOURCE_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-resource
+          property: url
+
+  # ── 2. Client Application ────────────────────────────────
+  - type: web
+    name: oauth-lab-client
+    runtime: docker
+    dockerfilePath: ./client-app/Dockerfile
+    dockerContext: ./client-app
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: CLIENT_ID
+        value: legitimate-client
+      - key: CLIENT_SECRET
+        value: legitimate-secret-abc123
+      - key: CLIENT_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-client
+          property: url
+      - key: AUTH_SERVER
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url
+      - key: AUTH_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url
+      - key: RESOURCE_SERVER
+        fromService:
+          type: web
+          name: oauth-lab-resource
+          property: url
+      - key: RESOURCE_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-resource
+          property: url
+      - key: ATTACKER_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-attacker
+          property: url
+      - key: MONITOR_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-monitor
+          property: url
+
+  # ── 3. Resource Server ───────────────────────────────────
+  - type: web
+    name: oauth-lab-resource
+    runtime: docker
+    dockerfilePath: ./resource-server/Dockerfile
+    dockerContext: ./resource-server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3003
+      - key: JWT_SECRET
+        value: render-lab-jwt-secret-change-me-2024  # ← must match oauth-lab-auth
+      - key: VULNERABLE_MODE
+        value: "true"
+      - key: AUTH_SERVER
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url
+      - key: AUTH_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url
+      - key: RESOURCE_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-resource
+          property: url
+      # ⚠️  Update this after first deploy with actual Render URLs:
+      # https://dashboard.render.com → oauth-lab-resource → Environment
+      # Format: https://oauth-lab-client.onrender.com,https://oauth-lab-attacker.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: PASTE_CLIENT_URL_HERE,PASTE_ATTACKER_URL_HERE
+
+  # ── 4. Attacker Server ───────────────────────────────────
+  - type: web
+    name: oauth-lab-attacker
+    runtime: docker
+    dockerfilePath: ./attacker-server/Dockerfile
+    dockerContext: ./attacker-server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3004
+      - key: CLIENT_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-client
+          property: url
+      - key: AUTH_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url
+      - key: RESOURCE_SERVER_PUBLIC
+        fromService:
+          type: web
+          name: oauth-lab-resource
+          property: url
+      - key: ATTACKER_BASE_URL
+        fromService:
+          type: web
+          name: oauth-lab-attacker
+          property: url
+
+  # ── 5. Monitoring Dashboard ──────────────────────────────
+  - type: web
+    name: oauth-lab-monitor
+    runtime: docker
+    dockerfilePath: ./monitoring-dashboard/Dockerfile
+    dockerContext: ./monitoring-dashboard
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3005
+      - key: AUTH_SERVER
+        fromService:
+          type: web
+          name: oauth-lab-auth
+          property: url

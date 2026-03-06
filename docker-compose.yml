@@ -1,0 +1,132 @@
+# OAuth Security Attack Simulation Lab — by SinhaAmrit (https://github.com/SinhaAmrit)
+
+# ============================================================
+# OAuth Security Attack Simulation Lab
+# ============================================================
+# Services:
+#   auth-server          :3001  Authorization Server (vulnerable/secure toggle)
+#   client-app           :3002  Web Client Application
+#   resource-server      :3003  Protected API
+#   attacker-server      :3004  Attacker Infrastructure (educational)
+#   monitoring-dashboard :3005  Security Event Dashboard
+#
+# Mode Toggle:
+#   VULNERABLE_MODE=true  → All attacks active
+#   VULNERABLE_MODE=false → All mitigations active
+#
+# Usage:
+#   # Vulnerable mode (run attacks):
+#   docker-compose up
+#
+#   # Secure mode (test mitigations):
+#   VULNERABLE_MODE=false docker-compose up
+# ============================================================
+
+x-common-env: &common-env
+  NODE_ENV: development
+  JWT_SECRET: "super-secret-jwt-key-CHANGE-IN-PRODUCTION"
+  VULNERABLE_MODE: ${VULNERABLE_MODE:-true}   # Default: vulnerable for learning
+
+volumes:
+  auth-db:
+
+services:
+
+  # ── Authorization Server ──────────────────────────────────
+  auth-server:
+    build: ./auth-server
+    ports:
+      - "3001:3001"
+    environment:
+      <<: *common-env
+      PORT: 3001
+      DB_PATH: /data/oauth.db
+      CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:3002}
+      ATTACKER_BASE_URL: ${ATTACKER_BASE_URL:-http://localhost:3004}
+      AUTH_SERVER_PUBLIC: ${AUTH_SERVER_PUBLIC:-http://localhost:3001}
+      RESOURCE_SERVER_PUBLIC: ${RESOURCE_SERVER_PUBLIC:-http://localhost:3003}
+    volumes:
+      - auth-db:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oauth-lab
+
+  # ── Client Application ────────────────────────────────────
+  client-app:
+    build: ./client-app
+    ports:
+      - "3002:3002"
+    environment:
+      <<: *common-env
+      PORT: 3002
+      AUTH_SERVER: http://auth-server:3001
+      AUTH_SERVER_PUBLIC: ${AUTH_SERVER_PUBLIC:-http://localhost:3001}
+      RESOURCE_SERVER: http://resource-server:3003
+      RESOURCE_SERVER_PUBLIC: ${RESOURCE_SERVER_PUBLIC:-http://localhost:3003}
+      CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:3002}
+      ATTACKER_BASE_URL: ${ATTACKER_BASE_URL:-http://localhost:3004}
+      MONITOR_BASE_URL: ${MONITOR_BASE_URL:-http://localhost:3005}
+      CLIENT_ID: legitimate-client
+      CLIENT_SECRET: legitimate-secret-abc123
+    volumes:
+      - ./client-app/public:/app/public   # live reload: static files served without rebuild
+      - ./client-app/src:/app/src
+    depends_on:
+      auth-server:
+        condition: service_healthy
+    networks:
+      - oauth-lab
+
+  # ── Resource Server ───────────────────────────────────────
+  resource-server:
+    build: ./resource-server
+    ports:
+      - "3003:3003"
+    environment:
+      <<: *common-env
+      PORT: 3003
+      AUTH_SERVER: http://auth-server:3001
+      AUTH_SERVER_PUBLIC: ${AUTH_SERVER_PUBLIC:-http://localhost:3001}
+      RESOURCE_SERVER_PUBLIC: ${RESOURCE_SERVER_PUBLIC:-http://localhost:3003}
+      ALLOWED_ORIGINS: ${CLIENT_BASE_URL:-http://localhost:3002},${ATTACKER_BASE_URL:-http://localhost:3004}
+    depends_on:
+      auth-server:
+        condition: service_healthy
+    networks:
+      - oauth-lab
+
+  # ── Attacker Server ───────────────────────────────────────
+  attacker-server:
+    build: ./attacker-server
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:3002}
+      AUTH_SERVER_PUBLIC: ${AUTH_SERVER_PUBLIC:-http://localhost:3001}
+      RESOURCE_SERVER_PUBLIC: ${RESOURCE_SERVER_PUBLIC:-http://localhost:3003}
+      ATTACKER_BASE_URL: ${ATTACKER_BASE_URL:-http://localhost:3004}
+    networks:
+      - oauth-lab
+
+  # ── Monitoring Dashboard ──────────────────────────────────
+  monitoring-dashboard:
+    build: ./monitoring-dashboard
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      AUTH_SERVER: http://auth-server:3001
+    depends_on:
+      auth-server:
+        condition: service_healthy
+    networks:
+      - oauth-lab
+
+networks:
+  oauth-lab:
+    driver: bridge
